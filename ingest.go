@@ -9,13 +9,12 @@ import (
 	"gorm.io/gorm"
 )
 
+
 // loads the feed list from the DB, then calls ingestFromUrlWriteToDB to load all feed items and write them to the DB (skipping duplicates).
 func ingestFromDB(db *gorm.DB) error {
 	var feeds []Feed
 
-	fmt.Println("Trying to ingest from DB.")
 	result := db.Find(&feeds)
-	fmt.Println(result.RowsAffected, " rows found.")
 	if result.RowsAffected == 0 {
 		return errors.New("No feeds found.")
 	}
@@ -23,7 +22,7 @@ func ingestFromDB(db *gorm.DB) error {
 		return result.Error
 	}
 	for _, f := range feeds {
-		err := ingestFromUrlWriteToDB(db, f.Url)
+		err := ingestFromUrlWriteToDB(db, f.Url, f.Abbr)
 		if err != nil {
 			return err
 		}
@@ -44,7 +43,7 @@ func ingestFromDB(db *gorm.DB) error {
 // 	return nil
 // }
 
-func ingestFromUrlWriteToDB(db *gorm.DB, u string) error {
+func ingestFromUrlWriteToDB(db *gorm.DB, u string, abbr string) error {
 	fp := gofeed.NewParser()
 	feed, err := fp.ParseURL(u)
 	if err != nil {
@@ -55,7 +54,7 @@ func ingestFromUrlWriteToDB(db *gorm.DB, u string) error {
 		fmt.Printf("%v -- %v\n", item.PublishedParsed.Format("Jan 02 15:04"), item.Title)
 		hash := sha1.Sum([]byte(item.Link))
 		hashBase64 := base64.StdEncoding.EncodeToString(hash[:])
-		dbItem := Item{Title: item.Title, Link: item.Link, Hash: hashBase64, PublishedParsed: item.PublishedParsed}
+		dbItem := Item{Title: item.Title, FeedAbbr: abbr, Link: item.Link, Hash: hashBase64, PublishedParsed: item.PublishedParsed}
 		// 		result := db.Create(&dbItem)
 		result := db.Where(Item{Hash: hashBase64}).FirstOrCreate(&dbItem)
 		fmt.Println("Gorm rows affected: ", result.RowsAffected)
