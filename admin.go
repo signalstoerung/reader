@@ -17,7 +17,8 @@ func adminPostHandler(w http.ResponseWriter, r *http.Request) {
 	rawAbbr := r.PostForm.Get("abbr")
 	rawUrl := r.PostForm.Get("url")
 	_, err := url.ParseRequestURI(rawUrl)
-	if isAlpha(rawTitle) && isAlpha(rawAbbr) && err == nil {
+//  	fmt.Printf("%v %v %v\n",isAlphaNum(rawTitle), isAlpha(rawAbbr), err)
+	if isAlphaNum(rawTitle) && isAlpha(rawAbbr) && err == nil {
 		newFeed.Name = rawTitle
 		newFeed.Abbr = firstN(rawAbbr, 4)
 		newFeed.Url = rawUrl

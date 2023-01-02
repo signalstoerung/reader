@@ -2,14 +2,26 @@ package main
 
 import "unicode"
 
-func isAlpha(s string) bool {
+func isAlphaNum(s string) bool {
 	for _,l := range s {
-		if !unicode.IsLetter(l) {
+		if unicode.IsLetter(l) || unicode.IsNumber(l) || unicode.IsSpace(l) {
+			// continue
+		} else {
 			return false
 		}
 	}
 	return true
 }
+
+func isAlpha(s string) bool {
+	for _,l := range s {
+		if !unicode.IsLetter(l)  {
+			return false
+		}
+	}
+	return true
+}
+
 
 func firstN(s string, n int) string {
     i := 0
