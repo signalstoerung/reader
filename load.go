@@ -12,7 +12,7 @@ func loadItemsFromDB(db *gorm.DB, resultSlice *[]string, filter string, limit in
 		return result.Error
 	}
 	for _,item := range items {
-		*resultSlice = append(*resultSlice, fmt.Sprintf("<div><a href=\"%v\">%v %v-%v</a></div>\n",item.Link,item.PublishedParsed.Format("02 Jan 15:04"),item.FeedAbbr,item.Title))
+		*resultSlice = append(*resultSlice, fmt.Sprintf("<div><a href=\"%v\" target=\"_blank\">%v %v-%v</a></div>\n",item.Link,item.PublishedParsed.Format("02 Jan 15:04"),item.FeedAbbr,item.Title))
 	}
 	return nil
 }

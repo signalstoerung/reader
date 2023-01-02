@@ -8,6 +8,7 @@ import (
 	"time"
 	"os"
 	"strconv"
+	"errors"
 )
 
 type Feed struct {
@@ -131,20 +132,37 @@ func updateFeedsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func adminFeedsHandler (w http.ResponseWriter, r *http.Request) {
-	emitHTMLFromFile(w, r, "./www/header.html")
-	defer emitHTMLFromFile(w, r, "./www/footer.html")
+	if r.Method == "GET" {
+		adminGetHandler (w, r)
+	} else if r.Method == "POST" {
+		adminPostHandler (w, r)
+	} else {
+		http.Error(w, "Invalid request.", http.StatusInternalServerError)
+	}
 }
 
 
 func main() {
-	if err := openDBConnection(); err != nil {
-		fmt.Printf("encountered an error: %v", err)
-		os.Exit(1)
+//	recreate reader.db if it doesn't exist
+	if _, err := os.Stat("./reader.db"); err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			fmt.Println("reader.db doesn't exist, recreating...'")
+			if err := openDBConnection(); err != nil {
+				fmt.Printf("encountered an error: %v", err)
+				os.Exit(1)
+			}
+			initializeDB(db)	
+		} else {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+	} else {
+		if err := openDBConnection(); err != nil {
+			fmt.Printf("encountered an error: %v", err)
+			os.Exit(1)
+		}
 	}
 
-//	uncomment this line when DB needs to be recreated
-// 	initializeDB(db)	
-	
 
 	http.HandleFunc("/", rootHandler)
 	http.HandleFunc("/update/", updateFeedsHandler)
