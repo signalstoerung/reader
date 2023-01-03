@@ -9,6 +9,7 @@ import (
 	"os"
 	"strconv"
 	"errors"
+	"log"
 )
 
 type Feed struct {
@@ -38,7 +39,7 @@ func openDBConnection()  error {
 func initializeDB (db *gorm.DB) {
 	db.AutoMigrate(&Feed{})
 	db.AutoMigrate(&Item{})
-	db.Create(&Feed{Name:"NYT Tech",Abbr:"NYT",Url:"https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml"})
+	db.Create(&Feed{Name:"NYT Wire",Abbr:"NYT",Url:"https://content.api.nytimes.com/svc/news/v3/all/recent.rss"})
 	db.Create(&Feed{Name:"NOS Nieuws Algemeen",Abbr:"NOS",Url:"https://feeds.nos.nl/nosnieuwsalgemeen"})
 	db.Create(&Feed{Name:"Tagesschau",Abbr:"ARD",Url:"https://www.tagesschau.de/xml/atom/"})
 
@@ -122,6 +123,7 @@ func updateFeedsHandler(w http.ResponseWriter, r *http.Request) {
 	emitHTMLFromFile(w, r, "./www/header.html")
 	defer emitHTMLFromFile(w, r, "./www/footer.html")
 
+	log.Print("Updating feeds...")
 	err := ingestFromDB(db)
 	if err != nil {
 		fmt.Fprintf(w, "<div>Error updating feeds: %v</div>", err)
@@ -141,6 +143,18 @@ func adminFeedsHandler (w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func periodicUpdates(t *time.Ticker, q chan int) {
+	for {
+		select {
+			case <- t.C:
+				log.Print("Periodic feed update triggered.")
+				ingestFromDB(db)
+			case <- q:
+				t.Stop()
+				return
+		}
+	}
+}
 
 func main() {
 //	recreate reader.db if it doesn't exist
@@ -169,7 +183,15 @@ func main() {
 	http.HandleFunc("/feeds/", adminFeedsHandler)
 	staticFileHandler := http.FileServer(http.Dir("./www"))
 	http.Handle("/static/", staticFileHandler)
-	//
+
+	// start a ticker for periodic refresh
+	ticker := time.NewTicker(15 * time.Minute)
+	quit := make(chan int)
+	defer close(quit)
+	log.Print("Starting ticker for periodic update.")
+	go periodicUpdates(ticker, quit)
+
+	log.Print("Starting to serve.")
 	http.ListenAndServe(":80", nil)
 
 

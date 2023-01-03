@@ -4,7 +4,7 @@ import (
 	"crypto/sha1"
 	"encoding/base64"
 	"errors"
-	"fmt"
+	"log"
 	"github.com/mmcdole/gofeed"
 	"gorm.io/gorm"
 	"sync"
@@ -51,15 +51,15 @@ func ingestFromUrlWriteToDB(db *gorm.DB, u string, abbr string) {
 	if err != nil {
 		return
 	}
-	fmt.Println(feed.Title)
+	log.Printf("Updating %s.",feed.Title)
 	for _, item := range feed.Items {
-		fmt.Printf("%v -- %v\n", item.PublishedParsed.Format("Jan 02 15:04"), item.Title)
+// 		fmt.Printf("%v -- %v\n", item.PublishedParsed.Format("Jan 02 15:04"), item.Title)
 		hash := sha1.Sum([]byte(item.Link))
 		hashBase64 := base64.StdEncoding.EncodeToString(hash[:])
 		dbItem := Item{Title: item.Title, FeedAbbr: abbr, Link: item.Link, Hash: hashBase64, PublishedParsed: item.PublishedParsed}
 		// 		result := db.Create(&dbItem)
 		result := db.Where(Item{Hash: hashBase64}).FirstOrCreate(&dbItem)
-		fmt.Println("Gorm rows affected: ", result.RowsAffected)
+// 		fmt.Println("Gorm rows affected: ", result.RowsAffected)
 		if result.Error != nil {
 			return
 		}
