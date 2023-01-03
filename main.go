@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/glebarez/sqlite"
+	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"net/http"
 	"time"

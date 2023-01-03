@@ -7,8 +7,10 @@ import (
 	"fmt"
 	"github.com/mmcdole/gofeed"
 	"gorm.io/gorm"
+	"sync"
 )
 
+var wg sync.WaitGroup
 
 // loads the feed list from the DB, then calls ingestFromUrlWriteToDB to load all feed items and write them to the DB (skipping duplicates).
 func ingestFromDB(db *gorm.DB) error {
@@ -22,11 +24,10 @@ func ingestFromDB(db *gorm.DB) error {
 		return result.Error
 	}
 	for _, f := range feeds {
-		err := ingestFromUrlWriteToDB(db, f.Url, f.Abbr)
-		if err != nil {
-			return err
-		}
+		wg.Add(1)
+		go ingestFromUrlWriteToDB(db, f.Url, f.Abbr)
 	}
+	wg.Wait()
 	return nil
 }
 
@@ -43,11 +44,12 @@ func ingestFromDB(db *gorm.DB) error {
 // 	return nil
 // }
 
-func ingestFromUrlWriteToDB(db *gorm.DB, u string, abbr string) error {
+func ingestFromUrlWriteToDB(db *gorm.DB, u string, abbr string) {
+	defer wg.Done()
 	fp := gofeed.NewParser()
 	feed, err := fp.ParseURL(u)
 	if err != nil {
-		return err
+		return
 	}
 	fmt.Println(feed.Title)
 	for _, item := range feed.Items {
@@ -59,8 +61,8 @@ func ingestFromUrlWriteToDB(db *gorm.DB, u string, abbr string) error {
 		result := db.Where(Item{Hash: hashBase64}).FirstOrCreate(&dbItem)
 		fmt.Println("Gorm rows affected: ", result.RowsAffected)
 		if result.Error != nil {
-			return result.Error
+			return
 		}
 	}
-	return nil
+	return
 }
