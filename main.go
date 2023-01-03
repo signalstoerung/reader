@@ -61,7 +61,7 @@ const updateFrequency = 15
 // openDBConnection opens the database connection (using SQLite)
 func openDBConnection()  error {
 	var err error
-	db, err = gorm.Open(sqlite.Open("reader.db"), &gorm.Config{})
+	db, err = gorm.Open(sqlite.Open("db/reader.db"), &gorm.Config{})
 	return err
 }
 
@@ -172,7 +172,7 @@ func periodicUpdates(t *time.Ticker, q chan int) {
 
 func main() {
 //	recreate reader.db if it doesn't exist
-	if _, err := os.Stat("./reader.db"); err != nil {
+	if _, err := os.Stat("./db/reader.db"); err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			log.Print("reader.db doesn't exist, recreating...'")
 			if err := openDBConnection(); err != nil {
