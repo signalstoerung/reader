@@ -125,7 +125,7 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		fmt.Fprintf(w, "Previous")
 	}
-		fmt.Fprintf(w, " | Page %v | <a href=\"/?page=%v&filter=%v\">next</a>",page,page+1,filter)
+		fmt.Fprintf(w, " | Page %v | <a href=\"/?page=%v&filter=%v\">Next</a>",page,page+1,filter)
 }
 
 // updateFeedsHandler serves "/update/", which triggers an update to the feeds
