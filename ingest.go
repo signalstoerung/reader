@@ -7,12 +7,10 @@ import (
 	"log"
 	"github.com/mmcdole/gofeed"
 	"gorm.io/gorm"
-	"sync"
 )
 
-var wg sync.WaitGroup
 
-// loads the feed list from the DB, then calls ingestFromUrlWriteToDB to load all feed items and write them to the DB (skipping duplicates).
+// ingestFromDB loads the feed list from the DB, then calls ingestFromUrlWriteToDB (concurrently) to load all feed items and write them to the DB (skipping duplicates).
 func ingestFromDB(db *gorm.DB) error {
 	var feeds []Feed
 
@@ -31,19 +29,7 @@ func ingestFromDB(db *gorm.DB) error {
 	return nil
 }
 
-// func ingestFromUrl(u string) error {
-// 	fp := gofeed.NewParser()
-// 	feed, err := fp.ParseURL(u)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	fmt.Println(feed.Title)
-// 	for _, item := range feed.Items {
-// 		fmt.Printf("%v -- %v\n", item.PublishedParsed.Format("Jan 02 15:04"), item.Title)
-// 	}
-// 	return nil
-// }
-
+// goroutine called by ingestFromDB. Loads all items of a given feed (from url) and writes them to the DB if they're new.
 func ingestFromUrlWriteToDB(db *gorm.DB, u string, abbr string) {
 	defer wg.Done()
 	fp := gofeed.NewParser()
@@ -53,13 +39,12 @@ func ingestFromUrlWriteToDB(db *gorm.DB, u string, abbr string) {
 	}
 	log.Printf("Updating %s.",feed.Title)
 	for _, item := range feed.Items {
-// 		fmt.Printf("%v -- %v\n", item.PublishedParsed.Format("Jan 02 15:04"), item.Title)
+		// this is our way of avoiding duplicates. We hash the link and then check the DB for this hash. 
+		// It's a unique key, so trying to insert a duplicate will throw an error. Hence we use gorm's "First or create", which is roughly the same as "INSERT IGNORE"
 		hash := sha1.Sum([]byte(item.Link))
 		hashBase64 := base64.StdEncoding.EncodeToString(hash[:])
 		dbItem := Item{Title: item.Title, FeedAbbr: abbr, Link: item.Link, Hash: hashBase64, PublishedParsed: item.PublishedParsed}
-		// 		result := db.Create(&dbItem)
 		result := db.Where(Item{Hash: hashBase64}).FirstOrCreate(&dbItem)
-// 		fmt.Println("Gorm rows affected: ", result.RowsAffected)
 		if result.Error != nil {
 			return
 		}

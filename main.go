@@ -1,7 +1,22 @@
+/*
+Reader is my "Poor Man's BBG" - news pulled in from various RSS feeds, timestamped and tagged with a source,
+and displayed in the style of a ticker with only headlines.
+
+It starts up a web server that serves:
+
+  /         the headlines (paginated and optionally filtered)
+  /feeds/   an interface to add or delete feeds
+  /update/  manually trigger a feed update
+
+In the backend, Reader uses an sqlite database. At first startup, when the DB does not exist, 
+it is created and seeded with a couple of recommended feeds.
+
+Automatic updates take place with the frequency (in minutes) defined by updateFrequency.
+
+*/
 package main
 
 import (
-	"fmt"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"net/http"
@@ -10,8 +25,13 @@ import (
 	"strconv"
 	"errors"
 	"log"
+	"fmt"
+	"sync"
 )
 
+/* Types */
+
+// The Feed struct stores information about an RSS feed.
 type Feed struct {
 	gorm.Model
 	Name string
@@ -19,6 +39,7 @@ type Feed struct {
 	Url string
 }
 
+// The Item struct stores an item from an RSS feed.
 type Item struct {
 	gorm.Model
 	Title string
@@ -28,52 +49,40 @@ type Item struct {
 	PublishedParsed *time.Time
 }
 
+// The global variable db stores a pool of database connections. Safe for concurrent use.
 var db *gorm.DB
 
+// The global variable wg is used to synchronise goroutines
+var wg sync.WaitGroup
+
+// Frequency of automatic updates, in minutes
+const updateFrequency = 15 
+
+// openDBConnection opens the database connection (using SQLite)
 func openDBConnection()  error {
 	var err error
 	db, err = gorm.Open(sqlite.Open("reader.db"), &gorm.Config{})
 	return err
 }
 
+// initializeDB is called only if the database does not exist. It creates the necessary tables and seeds the DB with a few feeds.
 func initializeDB (db *gorm.DB) {
 	db.AutoMigrate(&Feed{})
 	db.AutoMigrate(&Item{})
 	db.Create(&Feed{Name:"NYT Wire",Abbr:"NYT",Url:"https://content.api.nytimes.com/svc/news/v3/all/recent.rss"})
 	db.Create(&Feed{Name:"NOS Nieuws Algemeen",Abbr:"NOS",Url:"https://feeds.nos.nl/nosnieuwsalgemeen"})
 	db.Create(&Feed{Name:"Tagesschau",Abbr:"ARD",Url:"https://www.tagesschau.de/xml/atom/"})
+	db.Create(&Feed{Name:"CNBC Business",Abbr:"CNBC",Url:"https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10001147"})
 
 	// load feeds
 	if err := ingestFromDB(db); err != nil {
-		fmt.Printf("encountered an error: %v", err)
+		log.Printf("encountered an error: %v", err)
 		os.Exit(1)
 	}
 
 }
 
-// sends HTML from a file to w (if file exists)
-func emitHTMLFromFile(w http.ResponseWriter, r *http.Request, filename string) {
-	data, err := os.ReadFile(filename)
-	if err != nil {
-		return
-	} 
-	fmt.Fprintf(w, string(data))
-}
-
-func emitFeedFilterHTML (w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "		<div class=\"col-auto order-5\">")
-	defer fmt.Fprintf(w,"		</div>")
-	var feeds []Feed
-	result := db.Find(&feeds)
-	if result.Error != nil {
-		return
-	}
-	for _,f := range feeds {
-		fmt.Fprintf(w,"<div><a href=\"/?filter=%v\">%v</a></div>",f.Abbr,f.Abbr)
-	}
-	fmt.Fprintf(w,"<div><a href=\"/\">Clear</a></div>")
-}
-
+// rootHandler serves "/"
 func rootHandler(w http.ResponseWriter, r *http.Request) {
 	limit := 15
 	page := 0
@@ -106,7 +115,7 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 	
 	err := loadItemsFromDB(db, &result, filter, limit, offset)
 	if err != nil {
-		fmt.Printf("Error in rootHandler: ",err)
+		log.Printf("Error in rootHandler: ",err)
 	}
 	for _,s := range result {
 		fmt.Fprintf(w, s)
@@ -119,6 +128,7 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, " | Page %v | <a href=\"/?page=%v&filter=%v\">next</a>",page,page+1,filter)
 }
 
+// updateFeedsHandler serves "/update/", which triggers an update to the feeds
 func updateFeedsHandler(w http.ResponseWriter, r *http.Request) {
 	emitHTMLFromFile(w, r, "./www/header.html")
 	defer emitHTMLFromFile(w, r, "./www/footer.html")
@@ -133,6 +143,8 @@ func updateFeedsHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "<div><a href=\"/\">Return to homepage</a></div>")
 }
 
+// adminFeedsHandler serves "/feeds/", which allows deletion and creation of feeds.
+// it calls adminGetHandler or adminPostHandler depending on request method.
 func adminFeedsHandler (w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
 		adminGetHandler (w, r)
@@ -143,6 +155,8 @@ func adminFeedsHandler (w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// periodicUpdates waits for a tick to be transmitted from a time.Ticker and then triggers an update of the feeds.
+// It terminates when receiving anything on the q (quit) channel (or if the channel closes).
 func periodicUpdates(t *time.Ticker, q chan int) {
 	for {
 		select {
@@ -160,19 +174,19 @@ func main() {
 //	recreate reader.db if it doesn't exist
 	if _, err := os.Stat("./reader.db"); err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			fmt.Println("reader.db doesn't exist, recreating...'")
+			log.Print("reader.db doesn't exist, recreating...'")
 			if err := openDBConnection(); err != nil {
-				fmt.Printf("encountered an error: %v", err)
+				log.Printf("encountered an error: %v", err)
 				os.Exit(1)
 			}
 			initializeDB(db)	
 		} else {
-			fmt.Println(err)
+			log.Print(err)
 			os.Exit(1)
 		}
 	} else {
 		if err := openDBConnection(); err != nil {
-			fmt.Printf("encountered an error: %v", err)
+			log.Printf("encountered an error: %v", err)
 			os.Exit(1)
 		}
 	}
@@ -184,8 +198,8 @@ func main() {
 	staticFileHandler := http.FileServer(http.Dir("./www"))
 	http.Handle("/static/", staticFileHandler)
 
-	// start a ticker for periodic refresh
-	ticker := time.NewTicker(15 * time.Minute)
+	// start a ticker for periodic refresh using the const updateFrequency
+	ticker := time.NewTicker(updateFrequency * time.Minute)
 	quit := make(chan int)
 	defer close(quit)
 	log.Print("Starting ticker for periodic update.")
