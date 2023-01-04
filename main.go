@@ -49,6 +49,8 @@ type Item struct {
 	PublishedParsed *time.Time
 }
 
+/* Global variables */
+
 // The global variable db stores a pool of database connections. Safe for concurrent use.
 var db *gorm.DB
 
@@ -64,6 +66,8 @@ func openDBConnection()  error {
 	db, err = gorm.Open(sqlite.Open("db/reader.db"), &gorm.Config{})
 	return err
 }
+
+/* DB functions */
 
 // initializeDB is called only if the database does not exist. It creates the necessary tables and seeds the DB with a few feeds.
 func initializeDB (db *gorm.DB) {
@@ -82,8 +86,14 @@ func initializeDB (db *gorm.DB) {
 
 }
 
+/* Request handler functions */
+
 // rootHandler serves "/"
 func rootHandler(w http.ResponseWriter, r *http.Request) {
+	if !isAuthenticated(r) {
+		http.Redirect(w, r, "/login/", http.StatusSeeOther)
+		return
+	}
 	limit := 15
 	page := 0
 	offset := 0
@@ -130,6 +140,10 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 
 // updateFeedsHandler serves "/update/", which triggers an update to the feeds
 func updateFeedsHandler(w http.ResponseWriter, r *http.Request) {
+	if !isAuthenticated(r) {
+		http.Redirect(w, r, "/login/", http.StatusSeeOther)
+		return
+	}
 	emitHTMLFromFile(w, r, "./www/header.html")
 	defer emitHTMLFromFile(w, r, "./www/footer.html")
 
@@ -146,6 +160,10 @@ func updateFeedsHandler(w http.ResponseWriter, r *http.Request) {
 // adminFeedsHandler serves "/feeds/", which allows deletion and creation of feeds.
 // it calls adminGetHandler or adminPostHandler depending on request method.
 func adminFeedsHandler (w http.ResponseWriter, r *http.Request) {
+	if !isAuthenticated(r) {
+		http.Redirect(w, r, "/login/", http.StatusSeeOther)
+		return
+	}
 	if r.Method == "GET" {
 		adminGetHandler (w, r)
 	} else if r.Method == "POST" {
@@ -155,20 +173,19 @@ func adminFeedsHandler (w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// periodicUpdates waits for a tick to be transmitted from a time.Ticker and then triggers an update of the feeds.
-// It terminates when receiving anything on the q (quit) channel (or if the channel closes).
-func periodicUpdates(t *time.Ticker, q chan int) {
-	for {
-		select {
-			case <- t.C:
-				log.Print("Periodic feed update triggered.")
-				ingestFromDB(db)
-			case <- q:
-				t.Stop()
-				return
-		}
+func loginHandler (w http.ResponseWriter, r *http.Request) {
+	if r.Method == "GET" {
+		emitHTMLFromFile(w, r, "./www/header.html")
+		emitHTMLFromFile(w, r, "./www/login-form.html")
+		emitHTMLFromFile(w, r, "./www/footer.html")
+	} else if r.Method == "POST" {
+		checkPassword(w, r)
+	} else {
+		http.Error(w, "Invalid request.", http.StatusInternalServerError)	
 	}
 }
+
+/* MAIN */
 
 func main() {
 //	recreate reader.db if it doesn't exist
@@ -191,22 +208,23 @@ func main() {
 		}
 	}
 
-
+// register handlers
 	http.HandleFunc("/", rootHandler)
 	http.HandleFunc("/update/", updateFeedsHandler)
 	http.HandleFunc("/feeds/", adminFeedsHandler)
+	http.HandleFunc("/login/", loginHandler)
 	staticFileHandler := http.FileServer(http.Dir("./www"))
 	http.Handle("/static/", staticFileHandler)
 
-	// start a ticker for periodic refresh using the const updateFrequency
+
+// start a ticker for periodic refresh using the const updateFrequency
 	ticker := time.NewTicker(updateFrequency * time.Minute)
 	quit := make(chan int)
 	defer close(quit)
 	log.Print("Starting ticker for periodic update.")
 	go periodicUpdates(ticker, quit)
 
+// serve web app
 	log.Print("Starting to serve.")
 	http.ListenAndServe(":80", nil)
-
-
 }
