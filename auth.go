@@ -111,6 +111,8 @@ func checkPassword (w http.ResponseWriter, r *http.Request) {
 		http.SetCookie(w, &cookie)
 
 		log.Printf("Successfully set the cookie %v", cookie)
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+
 	} else {
 		fmt.Fprint(w, "Wrong user/password combination.")
 		return
