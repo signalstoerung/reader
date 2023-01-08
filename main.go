@@ -58,7 +58,7 @@ type User struct {
 	sessionId uuid.UUID //unexported field should be ignored by gorm
 }
 
-type UserSessions []User
+type UserSessions map[string]User
 
 /* Global variables */
 
@@ -79,7 +79,7 @@ func openDBConnection()  error {
 }
 
 // store user sessions
-var userSessions UserSessions = make([]User,0,10)
+var userSessions UserSessions = make(map[string]User)
 
 // allow registrations or not
 var registrationsOpen bool = false

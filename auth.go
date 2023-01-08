@@ -5,7 +5,6 @@ package main
 import (
 	"net/http"
 	"fmt"
-	"errors"
 	"log"
     "encoding/base64"
     "encoding/hex"
@@ -44,15 +43,15 @@ func (u *User) verifyPassword(pw string) error {
 	return nil
 }
 
-func (sessions *UserSessions) sessionExists(userName string) (int, error) {
-	for i, u := range *sessions {
-		if u.UserName == userName {
-			return i, nil
-		}
-	}
-	errormsg := fmt.Sprintf("No session found for %s.",userName)
-	return 0, errors.New(errormsg)
-}
+//func (sessions *UserSessions) sessionExists(userName string) (int, error) {
+//	for i, u := range *sessions {
+//		if u.UserName == userName {
+//			return i, nil
+//		}
+//	}
+//	errormsg := fmt.Sprintf("No session found for %s.",userName)
+//	return 0, errors.New(errormsg)
+//}
 
 func signedCookieValue (cookieName string, cookieValue string) string {
 		// create signature for value
@@ -78,8 +77,8 @@ func isAuthenticated (r *http.Request) bool {
 	// there should only be one cookie sent, so we just get the first one
 	cookie := cookies[0]
 
-	i, err := userSessions.sessionExists(cookie.Name)
-	if err != nil {
+	u, ok := userSessions[cookie.Name]
+	if !ok {
 		if logDebugLevel {
 		log.Printf("No active session found for user %s.",cookie.Name)
 		}
@@ -87,8 +86,8 @@ func isAuthenticated (r *http.Request) bool {
 	} 
 	
 	// get user name and active session ID for user
-	userName := userSessions[i].UserName
-	sessionId := userSessions[i].sessionId
+	userName := u.UserName
+	sessionId := u.sessionId
 
 	if logDebugLevel {
 	log.Printf("found session for %s with id %s", userName, sessionId)
@@ -171,7 +170,7 @@ func checkPassword (w http.ResponseWriter, r *http.Request) {
 		
 		http.SetCookie(w, &cookie)
 
-		userSessions = append(userSessions, maybeUser)
+		userSessions[maybeUser.UserName] = maybeUser
 
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		
