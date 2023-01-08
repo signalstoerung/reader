@@ -84,6 +84,10 @@ var userSessions UserSessions = make([]User,0,10)
 // allow registrations or not
 var registrationsOpen bool = false
 
+// loggin level
+var logDebugLevel bool = false
+
+
 /* DB functions */
 
 // initializeDB is called only if the database does not exist. It creates the necessary tables and seeds the DB with a few feeds.
