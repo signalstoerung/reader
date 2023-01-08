@@ -19,6 +19,7 @@ package main
 import (
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	"github.com/google/uuid"
 	"net/http"
 	"time"
 	"os"
@@ -49,6 +50,16 @@ type Item struct {
 	PublishedParsed *time.Time
 }
 
+// The User struct stores a user (with a session UUID)
+type User struct {
+	gorm.Model
+	UserName string
+	Password string
+	sessionId uuid.UUID //unexported field should be ignored by gorm
+}
+
+type UserSessions []User
+
 /* Global variables */
 
 // The global variable db stores a pool of database connections. Safe for concurrent use.
@@ -67,16 +78,26 @@ func openDBConnection()  error {
 	return err
 }
 
+// store user sessions
+var userSessions UserSessions = make([]User,0,10)
+
+
 /* DB functions */
 
 // initializeDB is called only if the database does not exist. It creates the necessary tables and seeds the DB with a few feeds.
 func initializeDB (db *gorm.DB) {
 	db.AutoMigrate(&Feed{})
 	db.AutoMigrate(&Item{})
+	db.AutoMigrate(&User{})
 	db.Create(&Feed{Name:"NYT Wire",Abbr:"NYT",Url:"https://content.api.nytimes.com/svc/news/v3/all/recent.rss"})
 	db.Create(&Feed{Name:"NOS Nieuws Algemeen",Abbr:"NOS",Url:"https://feeds.nos.nl/nosnieuwsalgemeen"})
 	db.Create(&Feed{Name:"Tagesschau",Abbr:"ARD",Url:"https://www.tagesschau.de/xml/atom/"})
 	db.Create(&Feed{Name:"CNBC Business",Abbr:"CNBC",Url:"https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10001147"})
+	
+	// create a dummy user
+	dummyUser := User{UserName: "wrgfst", Password:""}
+	dummyUser.setPassword("M47Ks8eMJK4z")
+	db.Create(&dummyUser)
 
 	// load feeds
 	if err := ingestFromDB(db); err != nil {

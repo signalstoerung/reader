@@ -18,9 +18,10 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180228061459-e0a39a4cb421 // indirect
 	github.com/modern-go/reflect2 v0.0.0-20180701023420-4b7aa43c6742 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20200410134404-eec4a21b6bb0 // indirect
-	golang.org/x/net v0.0.0-20201021035429-f5854403a974 // indirect
-	golang.org/x/sys v0.0.0-20220811171246-fbc7d0a398ab // indirect
-	golang.org/x/text v0.3.3 // indirect
+	golang.org/x/crypto v0.5.0 // indirect
+	golang.org/x/net v0.5.0 // indirect
+	golang.org/x/sys v0.4.0 // indirect
+	golang.org/x/text v0.6.0 // indirect
 	gorm.io/driver/sqlite v1.4.4 // indirect
 	gorm.io/gorm v1.24.3 // indirect
 	modernc.org/libc v1.21.5 // indirect
