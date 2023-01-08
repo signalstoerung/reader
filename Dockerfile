@@ -15,7 +15,7 @@ COPY www/*.html ./www/
 
 RUN go build -o /reader
 
-EXPOSE 80
+EXPOSE 8000
 
 CMD [ "/reader" ]
 

@@ -277,5 +277,5 @@ func main() {
 
 // serve web app
 	log.Print("Starting to serve.")
-	http.ListenAndServe(":80", nil)
+	http.ListenAndServe(":8000", nil)
 }
