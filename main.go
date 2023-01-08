@@ -81,6 +81,8 @@ func openDBConnection()  error {
 // store user sessions
 var userSessions UserSessions = make([]User,0,10)
 
+// allow registrations or not
+var registrationsOpen bool = false
 
 /* DB functions */
 
@@ -93,11 +95,15 @@ func initializeDB (db *gorm.DB) {
 	db.Create(&Feed{Name:"NOS Nieuws Algemeen",Abbr:"NOS",Url:"https://feeds.nos.nl/nosnieuwsalgemeen"})
 	db.Create(&Feed{Name:"Tagesschau",Abbr:"ARD",Url:"https://www.tagesschau.de/xml/atom/"})
 	db.Create(&Feed{Name:"CNBC Business",Abbr:"CNBC",Url:"https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10001147"})
-	
+
+	// allow new user registrations
+	registrationsOpen = true	
+
 	// create a dummy user
-	dummyUser := User{UserName: "wrgfst", Password:""}
-	dummyUser.setPassword("M47Ks8eMJK4z")
-	db.Create(&dummyUser)
+	// TODO: delete this when signups work
+// 	dummyUser := User{UserName: "wrgfst", Password:""}
+// 	dummyUser.setPassword("M47Ks8eMJK4z")
+// 	db.Create(&dummyUser)
 
 	// load feeds
 	if err := ingestFromDB(db); err != nil {
@@ -206,6 +212,25 @@ func loginHandler (w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func registrationHandler (w http.ResponseWriter, r *http.Request) {
+	if !registrationsOpen {
+		emitHTMLFromFile(w, r, "./www/header.html")
+		fmt.Fprint(w,"<b>Sorry, no new signups are allowed.</b>")
+		emitHTMLFromFile(w, r, "./www/footer.html")
+		return
+	}
+	if r.Method == "GET" {
+		emitHTMLFromFile(w, r, "./www/header.html")
+		emitHTMLFromFile(w, r, "./www/registration-form.html")
+		emitHTMLFromFile(w, r, "./www/footer.html")
+	} else if r.Method == "POST" {
+		registerNewUser(w, r)
+	} else {
+		http.Error(w, "Invalid request.", http.StatusInternalServerError)	
+	}
+}
+
+
 /* MAIN */
 
 func main() {
@@ -234,6 +259,7 @@ func main() {
 	http.HandleFunc("/update/", updateFeedsHandler)
 	http.HandleFunc("/feeds/", adminFeedsHandler)
 	http.HandleFunc("/login/", loginHandler)
+	http.HandleFunc("/register/", registrationHandler)
 	staticFileHandler := http.FileServer(http.Dir("./www"))
 	http.Handle("/static/", staticFileHandler)
 

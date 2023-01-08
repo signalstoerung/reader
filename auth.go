@@ -69,7 +69,9 @@ func isAuthenticated (r *http.Request) bool {
 	// get all cookies from the request
 	cookies := r.Cookies()	
 	if len(cookies) == 0 {
+		if logDebugLevel {
 		log.Println("No cookie found.")
+		}
 		return false
 	}
 
@@ -78,15 +80,19 @@ func isAuthenticated (r *http.Request) bool {
 
 	i, err := userSessions.sessionExists(cookie.Name)
 	if err != nil {
+		if logDebugLevel {
 		log.Printf("No active session found for user %s.",cookie.Name)
+		}
 		return false
 	} 
 	
 	// get user name and active session ID for user
 	userName := userSessions[i].UserName
 	sessionId := userSessions[i].sessionId
-	log.Printf("found session for %s with id %s", userName, sessionId)
 
+	if logDebugLevel {
+	log.Printf("found session for %s with id %s", userName, sessionId)
+	}
 
 	// generate expected cookie value from session ID for later comparison
 	expectedValue := signedCookieValue(userName, sessionId.String())
@@ -138,8 +144,10 @@ func checkPassword (w http.ResponseWriter, r *http.Request) {
 		
 		// create session ID
 		maybeUser.sessionId = uuid.New()
-		
+
+		if logDebugLevel {
 		log.Printf("Setting cookie for user %s with sessionid %s", maybeUser.UserName, maybeUser.sessionId.String())
+		}		
 		
 		cookie := http.Cookie {
 			Name: maybeUser.UserName,
@@ -160,8 +168,40 @@ func checkPassword (w http.ResponseWriter, r *http.Request) {
 
 		userSessions = append(userSessions, maybeUser)
 
-		log.Printf("Successfully set the cookie %v", cookie)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		
 	}
+}
+
+func registerNewUser (w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Could not parse form.", http.StatusInternalServerError)
+		return
+	}
+	rawUserId := r.PostForm.Get("userid")
+	rawPassword := r.PostForm.Get("password")
+	
+	if rawUserId == "" || rawPassword == "" {
+		fmt.Fprint(w, "Missing user ID or password.")
+		return
+	}
+	
+	newUser := User{UserName: rawUserId}
+	err := newUser.setPassword(rawPassword)
+	if err != nil {
+		fmt.Fprintf(w, "Error creating new user: password could not be set (%s)", err)
+		return
+	}
+	
+	result := db.Create(&newUser)
+	if result.Error != nil {
+		fmt.Fprintf(w, "Error creating new user: %s",result.Error)
+	}
+
+	emitHTMLFromFile(w, r, "./www/header.html")
+	fmt.Fprint(w, "User created.")
+	emitHTMLFromFile(w, r, "./www/footer.html")
+	
+	// close registrations - we're assuming this is a single-user instance. 
+	registrationsOpen = false	
 }
