@@ -120,6 +120,11 @@ func checkPassword (w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	rawUserId := r.PostForm.Get("userid")
+
+	if !isAlpha(rawUserId) {
+		fmt.Fprint(w, "User name may only consist of letters.")
+		return
+	}
 	rawPassword := r.PostForm.Get("password")
 	
 	if rawUserId == "" || rawPassword == "" {
@@ -183,6 +188,11 @@ func registerNewUser (w http.ResponseWriter, r *http.Request) {
 	
 	if rawUserId == "" || rawPassword == "" {
 		fmt.Fprint(w, "Missing user ID or password.")
+		return
+	}
+	
+	if !isAlpha(rawUserId) {
+		fmt.Fprint(w, "User name can only consist of letters.")
 		return
 	}
 	
