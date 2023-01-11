@@ -1,4 +1,4 @@
-module unxpctd.xyz/go/reader
+module github.com/signalstoerung/reader
 
 go 1.19
 
