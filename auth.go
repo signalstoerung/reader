@@ -14,6 +14,9 @@ import (
     "github.com/google/uuid"
 )
 
+
+// Provides a secret key for signing cookies.
+// TODO: Remove hard-coded secret and put into configuration file.
 func secretKey() []byte {
 	const secret = "23f7b439110cdae1bc133e42565fe17d5eb7dfec4a2522cc923e4aa313a12083" 
 	key, err := hex.DecodeString(secret)
@@ -23,6 +26,7 @@ func secretKey() []byte {
 	return key
 }
 
+// sets the password for a User
 func (u *User) setPassword(pw string) error {
     hash, err := bcrypt.GenerateFromPassword([]byte(pw), bcrypt.DefaultCost)
     if err != nil {
@@ -33,6 +37,7 @@ func (u *User) setPassword(pw string) error {
 	return nil
 }
 
+// verifies a user-provided password
 func (u *User) verifyPassword(pw string) error {
 	err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(pw))
 	if err != nil {
@@ -43,16 +48,7 @@ func (u *User) verifyPassword(pw string) error {
 	return nil
 }
 
-//func (sessions *UserSessions) sessionExists(userName string) (int, error) {
-//	for i, u := range *sessions {
-//		if u.UserName == userName {
-//			return i, nil
-//		}
-//	}
-//	errormsg := fmt.Sprintf("No session found for %s.",userName)
-//	return 0, errors.New(errormsg)
-//}
-
+// signedCookieValue takes the cookie name and cookie value and returns a signed value 
 func signedCookieValue (cookieName string, cookieValue string) string {
 		// create signature for value
 		mac := hmac.New(sha256.New, secretKey())
@@ -64,6 +60,8 @@ func signedCookieValue (cookieName string, cookieValue string) string {
 		return string(signature)+cookieValue	
 }
 
+// isAuthenticated is called by every URL handler that requires the user to be logged in.
+// It checks if a cookie is present and verifies it.
 func isAuthenticated (r *http.Request) bool {
 	// get all cookies from the request
 	cookies := r.Cookies()	
@@ -113,6 +111,8 @@ func isAuthenticated (r *http.Request) bool {
 	return true
 }
 
+// checkPassword is called by the http handler to process a login form.
+// redirects user to "/" if successful.
 func checkPassword (w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Could not parse form.", http.StatusInternalServerError)
@@ -177,6 +177,7 @@ func checkPassword (w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// registerNewUser processes the form for user registration
 func registerNewUser (w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Could not parse form.", http.StatusInternalServerError)

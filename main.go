@@ -71,24 +71,24 @@ var wg sync.WaitGroup
 // Frequency of automatic updates, in minutes
 const updateFrequency = 15 
 
-// openDBConnection opens the database connection (using SQLite)
-func openDBConnection()  error {
-	var err error
-	db, err = gorm.Open(sqlite.Open("db/reader.db"), &gorm.Config{})
-	return err
-}
-
 // store user sessions
 var userSessions UserSessions = make(map[string]User)
 
 // allow registrations or not
 var registrationsOpen bool = false
 
-// loggin level
+// logging level
 var logDebugLevel bool = false
 
 
 /* DB functions */
+
+// openDBConnection opens the database connection (using SQLite)
+func openDBConnection()  error {
+	var err error
+	db, err = gorm.Open(sqlite.Open("db/reader.db"), &gorm.Config{})
+	return err
+}
 
 // initializeDB is called only if the database does not exist. It creates the necessary tables and seeds the DB with a few feeds.
 func initializeDB (db *gorm.DB) {
@@ -100,14 +100,8 @@ func initializeDB (db *gorm.DB) {
 	db.Create(&Feed{Name:"Tagesschau",Abbr:"ARD",Url:"https://www.tagesschau.de/xml/atom/"})
 	db.Create(&Feed{Name:"CNBC Business",Abbr:"CNBC",Url:"https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10001147"})
 
-	// allow new user registrations
+	// allow new user registrations on initialization
 	registrationsOpen = true	
-
-	// create a dummy user
-	// TODO: delete this when signups work
-// 	dummyUser := User{UserName: "wrgfst", Password:""}
-// 	dummyUser.setPassword("M47Ks8eMJK4z")
-// 	db.Create(&dummyUser)
 
 	// load feeds
 	if err := ingestFromDB(db); err != nil {
