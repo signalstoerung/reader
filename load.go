@@ -31,8 +31,17 @@ func loadItems(db *gorm.DB, resultSlice *[]HeadlinesItem, filter string, limit i
 		return errors.New("No headlines found.")
 	}
 
+	// shorten slice to number of items in the results
+	*resultSlice = (*resultSlice)[:result.RowsAffected]
+	
 	for i, item := range items {
 		if i > len(*resultSlice) {
+			break
+		}
+
+		// at the very end of the result set (last page), DB seems to return an empty item
+		// calling .Format causes a panic
+		if item.PublishedParsed == nil {
 			break
 		}
 		(*resultSlice)[i].Link = item.Link

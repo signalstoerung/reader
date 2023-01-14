@@ -1,5 +1,5 @@
 		<div class="col">
-			{{range .Headlines}}
+			{{range .Headlines}}{{if not .Link}}{{break}}{{end}}
 				<div><a href="{{.Link}}" target="_blank">{{.Timestamp}} {{.FeedAbbr}}-{{.Title}}</a></div>
 			{{end}}
 				<div>
