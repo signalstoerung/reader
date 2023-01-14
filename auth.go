@@ -12,6 +12,7 @@ import (
     "crypto/sha256"
     "golang.org/x/crypto/bcrypt"
     "github.com/google/uuid"
+    "html/template"
 )
 
 
@@ -121,27 +122,27 @@ func checkPassword (w http.ResponseWriter, r *http.Request) {
 	rawUserId := r.PostForm.Get("userid")
 
 	if !isAlpha(rawUserId) {
-		fmt.Fprint(w, "User name may only consist of letters.")
+		returnError(w, "User name may only consist of letters.")
 		return
 	}
 	rawPassword := r.PostForm.Get("password")
 	
 	if rawUserId == "" || rawPassword == "" {
-		fmt.Fprint(w, "Missing user ID or password.")
+		returnError(w, "Missing user ID or password.")
 		return
 	}
 
 	var maybeUser User
 	result := db.Where(User{ UserName:rawUserId }).First(&maybeUser)
 	if result.Error != nil {
-		fmt.Fprint(w, "No user found or other error.")
+		returnError(w, "Sorry, we couldn't log you in with that user name or password.")
 		log.Printf("Error with user lookup: %v", result.Error)
 		return
 	}
 
 	if err := maybeUser.verifyPassword(rawPassword); err != nil {
 		// wrong password supplied
-		fmt.Fprint(w, "Wrong password.")
+		returnError(w, "Sorry, we couldn't log you in with that user name or password.")
 		return
 	} else {
 		// correct password supplied
@@ -180,37 +181,40 @@ func checkPassword (w http.ResponseWriter, r *http.Request) {
 // registerNewUser processes the form for user registration
 func registerNewUser (w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, "Could not parse form.", http.StatusInternalServerError)
+		returnError(w, "Could not parse form.")
 		return
 	}
 	rawUserId := r.PostForm.Get("userid")
 	rawPassword := r.PostForm.Get("password")
 	
 	if rawUserId == "" || rawPassword == "" {
-		fmt.Fprint(w, "Missing user ID or password.")
+		returnError(w, "Missing user ID or password.")
 		return
 	}
 	
 	if !isAlpha(rawUserId) {
-		fmt.Fprint(w, "User name can only consist of letters.")
+		returnError(w, "User name can only consist of letters.")
 		return
 	}
 	
 	newUser := User{UserName: rawUserId}
 	err := newUser.setPassword(rawPassword)
 	if err != nil {
-		fmt.Fprintf(w, "Error creating new user: password could not be set (%s)", err)
+		msg := fmt.Sprintf("Error creating new user: password could not be set (%s)", err)
+		returnError(w, msg)
 		return
 	}
 	
 	result := db.Create(&newUser)
 	if result.Error != nil {
-		fmt.Fprintf(w, "Error creating new user: %s",result.Error)
+		msg := fmt.Sprintf("Error creating new user: %s",result.Error)
+		returnError(w, msg)
 	}
 
-	emitHTMLFromFile(w, r, "./www/header.html")
-	fmt.Fprint(w, "User created.")
-	emitHTMLFromFile(w, r, "./www/footer.html")
+	emitHTMLFromFile(w, "./www/header.html")
+	t := template.Must(template.ParseFiles("www/content-row-div.html"))
+	t.Execute(w, "User created. You can now return to the homepage and log in.")
+	emitHTMLFromFile(w, "./www/footer.html")
 	
 	// close registrations - we're assuming this is a single-user instance. 
 	registrationsOpen = false	

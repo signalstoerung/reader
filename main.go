@@ -28,6 +28,7 @@ import (
 	"log"
 	"fmt"
 	"sync"
+	"html/template"
 )
 
 /* Types */
@@ -123,15 +124,7 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 	page := 0
 	offset := 0
 	filter := ""
-	result := make([]string,0,limit)
-	
-	emitHTMLFromFile(w, r, "./www/header.html")
-	defer emitHTMLFromFile(w, r, "./www/footer.html")
-
-	emitFeedFilterHTML(w, r)
-
-	fmt.Fprintf(w, "		<div class=\"col\">")
-	defer fmt.Fprintf(w, "		</div>")
+	result := make([]HeadlinesItem,limit)
 	
 	pageQuery := r.URL.Query()
 	if pageQuery.Get("page") != "" {
@@ -148,19 +141,39 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	
-	err := loadItemsFromDB(db, &result, filter, limit, offset)
+	err := loadItems(db, &result, filter, limit, offset)
 	if err != nil {
-		log.Printf("Error in rootHandler: ",err)
-	}
-	for _,s := range result {
-		fmt.Fprintf(w, s)
-	}
+		returnError(w, err.Error())
+		log.Printf(err.Error())
+		return
+	} 
+
+	emitHTMLFromFile(w, "./www/header.html")
+	defer emitHTMLFromFile(w, "./www/footer.html")
+
+	emitFeedFilterHTML(w)
+
+
+	// build struct	that will be passed to template
+	pageStruct := HeadlinesPage{}
+	
+	pageStruct.Page = page
+	pageStruct.Filter = filter
+	pageStruct.Headlines = result
+	
 	if page > 0 {
-		fmt.Fprintf(w, "<a href=\"/?page=%v&filter=%v\">Previous</a>",page-1, filter)
-	} else {
-		fmt.Fprintf(w, "Previous")
+		pageStruct.HasPreviousPage = true
+		pageStruct.PreviousPage = page - 1
+		} else {
+		pageStruct.HasPreviousPage = false
 	}
-		fmt.Fprintf(w, " | Page %v | <a href=\"/?page=%v&filter=%v\">Next</a>",page,page+1,filter)
+	pageStruct.NextPage = page + 1
+	
+	t := template.Must(template.ParseFiles("www/content-headlines.html"))
+	err = t.Execute(w, pageStruct)	
+	if err != nil {
+		log.Printf("Error executing template: %v",err)
+	}
 }
 
 // updateFeedsHandler serves "/update/", which triggers an update to the feeds
@@ -169,8 +182,8 @@ func updateFeedsHandler(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/login/", http.StatusSeeOther)
 		return
 	}
-	emitHTMLFromFile(w, r, "./www/header.html")
-	defer emitHTMLFromFile(w, r, "./www/footer.html")
+	emitHTMLFromFile(w, "./www/header.html")
+	defer emitHTMLFromFile(w, "./www/footer.html")
 
 	log.Print("Updating feeds...")
 	err := ingestFromDB(db)
@@ -200,9 +213,9 @@ func adminFeedsHandler (w http.ResponseWriter, r *http.Request) {
 
 func loginHandler (w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
-		emitHTMLFromFile(w, r, "./www/header.html")
-		emitHTMLFromFile(w, r, "./www/login-form.html")
-		emitHTMLFromFile(w, r, "./www/footer.html")
+		emitHTMLFromFile(w, "./www/header.html")
+		emitHTMLFromFile(w, "./www/login-form.html")
+		emitHTMLFromFile(w, "./www/footer.html")
 	} else if r.Method == "POST" {
 		checkPassword(w, r)
 	} else {
@@ -212,15 +225,15 @@ func loginHandler (w http.ResponseWriter, r *http.Request) {
 
 func registrationHandler (w http.ResponseWriter, r *http.Request) {
 	if !registrationsOpen {
-		emitHTMLFromFile(w, r, "./www/header.html")
+		emitHTMLFromFile(w, "./www/header.html")
 		fmt.Fprint(w,"<b>Sorry, no new signups are allowed.</b>")
-		emitHTMLFromFile(w, r, "./www/footer.html")
+		emitHTMLFromFile(w, "./www/footer.html")
 		return
 	}
 	if r.Method == "GET" {
-		emitHTMLFromFile(w, r, "./www/header.html")
-		emitHTMLFromFile(w, r, "./www/registration-form.html")
-		emitHTMLFromFile(w, r, "./www/footer.html")
+		emitHTMLFromFile(w, "./www/header.html")
+		emitHTMLFromFile(w, "./www/registration-form.html")
+		emitHTMLFromFile(w, "./www/footer.html")
 	} else if r.Method == "POST" {
 		registerNewUser(w, r)
 	} else {

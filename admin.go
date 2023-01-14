@@ -41,23 +41,23 @@ func adminGetHandler(w http.ResponseWriter, r *http.Request) {
 	if del := q.Get("delete"); del != "" {
 		id, err := strconv.Atoi(del)
 		if err != nil {
-			emitHTMLFromFile(w, r, "./www/header.html")
-			defer emitHTMLFromFile(w, r, "./www/footer.html")
+			emitHTMLFromFile(w, "./www/header.html")
+			defer emitHTMLFromFile(w, "./www/footer.html")
 			fmt.Fprintf(w,"Error: %v",err)
 			return
 		}
 		result := db.Delete(&Feed{},id)
 		if result.Error != nil {
-			emitHTMLFromFile(w, r, "./www/header.html")
-			defer emitHTMLFromFile(w, r, "./www/footer.html")
+			emitHTMLFromFile(w, "./www/header.html")
+			defer emitHTMLFromFile(w, "./www/footer.html")
 			fmt.Fprintf(w,"Error: %v",result.Error)
 			return
 		}
 		http.Redirect(w, r, "/feeds/", http.StatusSeeOther)
 	
 	} else {
-		emitHTMLFromFile(w, r, "./www/header.html")
-		defer emitHTMLFromFile(w, r, "./www/footer.html")
+		emitHTMLFromFile(w, "./www/header.html")
+		defer emitHTMLFromFile(w, "./www/footer.html")
 
 		var feeds []Feed
 		result := db.Find(&feeds)
@@ -65,7 +65,7 @@ func adminGetHandler(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprintf(w, "Error loading feeds: %v", result.Error)
 			return
 		}
-		emitHTMLFromFile(w, r, "./www/feed-edit-start.html")
+		emitHTMLFromFile(w, "./www/feed-edit-start.html")
 		for _, f := range feeds {
 			fmt.Fprintf(w, "<div class=\"row\">")
 			fmt.Fprintf(w, "<div class=\"col-2 mb-5\">%v</div>", f.Name)
@@ -75,7 +75,7 @@ func adminGetHandler(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprintf(w, "</div>")
 
 		}
-		emitHTMLFromFile(w, r, "./www/feed-edit-end.html")
+		emitHTMLFromFile(w, "./www/feed-edit-end.html")
 	}
 
 }

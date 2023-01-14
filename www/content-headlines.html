@@ -1,0 +1,8 @@
+		<div class="col">
+			{{range .Headlines}}
+				<div><a href="{{.Link}}" target="_blank">{{.Timestamp}} {{.FeedAbbr}}-{{.Title}}</a></div>
+			{{end}}
+				<div>
+				{{ if .HasPreviousPage }}<a href="/?page={{.PreviousPage}}&filter={{.Filter}}">Previous</a>{{ else }}Previous{{end}} | Page {{.Page}} | <a href="/?page={{.NextPage}}&filter={{.Filter}}">Next</a>
+				</div>
+		</div>

@@ -1,19 +1,44 @@
 package main
 
 import (
-	"fmt"
 	"gorm.io/gorm"
+	"errors"
+	"log"
 )
 
-// loadItemsFromDB is called by rootHandler. It retrieves items from the DB (optionally filtered by abbreviation), with limit and/or offset to allow pagination).
-func loadItemsFromDB(db *gorm.DB, resultSlice *[]string, filter string, limit int, offset int) error {
+
+
+// loadItems is called by rootHandler. It retrieves items from the DB (optionally filtered by abbreviation), with limit and/or offset to allow pagination)
+// it modifies the slice of headlinesTemplateResult that was provided by the calling function
+func loadItems(db *gorm.DB, resultSlice *[]HeadlinesItem, filter string, limit int, offset int) error {
+	// this function panics for some reason when we run out of headlines, catch it until we've figured out the bug
+	defer func() {
+		if r:= recover(); r != nil {
+			log.Printf("Recovered from panic in loadItems: %v.", r)
+		}
+	}()
+
 	var items []Item
 	result := db.Limit(limit).Offset(offset).Order("published_parsed desc").Where(&Item{FeedAbbr: filter}).Find(&items)
 	if result.Error != nil {
 		return result.Error
 	}
-	for _,item := range items {
-		*resultSlice = append(*resultSlice, fmt.Sprintf("<div><a href=\"%v\" target=\"_blank\">%v %v-%v</a></div>\n",item.Link,item.PublishedParsed.Format("02 Jan 15:04"),item.FeedAbbr,item.Title))
+	log.Printf("RowsAffected: %v",result.RowsAffected)
+
+	// I don't quite understand why RowsAffected is sometimes 1 and sometimes 0, but both return empty result slices, so catch it as an error
+	// this was what caused the panic later (calling .Format on a nil result)
+	if result.RowsAffected <= 1 {
+		return errors.New("No headlines found.")
+	}
+
+	for i, item := range items {
+		if i > len(*resultSlice) {
+			break
+		}
+		(*resultSlice)[i].Link = item.Link
+		(*resultSlice)[i].Title = item.Title
+		(*resultSlice)[i].Timestamp = item.PublishedParsed.Format("02 Jan 15:04")
+		(*resultSlice)[i].FeedAbbr = item.FeedAbbr
 	}
 	return nil
 }
