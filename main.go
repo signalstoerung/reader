@@ -125,10 +125,10 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 	filter := ""
 	result := make([]string,0,limit)
 	
-	emitHTMLFromFile(w, r, "./www/header.html")
-	defer emitHTMLFromFile(w, r, "./www/footer.html")
+	emitHTMLFromFile(w, "./www/header.html")
+	defer emitHTMLFromFile(w, "./www/footer.html")
 
-	emitFeedFilterHTML(w, r)
+	emitFeedFilterHTML(w)
 
 	fmt.Fprintf(w, "		<div class=\"col\">")
 	defer fmt.Fprintf(w, "		</div>")
@@ -169,8 +169,8 @@ func updateFeedsHandler(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/login/", http.StatusSeeOther)
 		return
 	}
-	emitHTMLFromFile(w, r, "./www/header.html")
-	defer emitHTMLFromFile(w, r, "./www/footer.html")
+	emitHTMLFromFile(w, "./www/header.html")
+	defer emitHTMLFromFile(w, "./www/footer.html")
 
 	log.Print("Updating feeds...")
 	err := ingestFromDB(db)
@@ -200,9 +200,9 @@ func adminFeedsHandler (w http.ResponseWriter, r *http.Request) {
 
 func loginHandler (w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
-		emitHTMLFromFile(w, r, "./www/header.html")
-		emitHTMLFromFile(w, r, "./www/login-form.html")
-		emitHTMLFromFile(w, r, "./www/footer.html")
+		emitHTMLFromFile(w, "./www/header.html")
+		emitHTMLFromFile(w, "./www/login-form.html")
+		emitHTMLFromFile(w, "./www/footer.html")
 	} else if r.Method == "POST" {
 		checkPassword(w, r)
 	} else {
@@ -212,15 +212,15 @@ func loginHandler (w http.ResponseWriter, r *http.Request) {
 
 func registrationHandler (w http.ResponseWriter, r *http.Request) {
 	if !registrationsOpen {
-		emitHTMLFromFile(w, r, "./www/header.html")
+		emitHTMLFromFile(w, "./www/header.html")
 		fmt.Fprint(w,"<b>Sorry, no new signups are allowed.</b>")
-		emitHTMLFromFile(w, r, "./www/footer.html")
+		emitHTMLFromFile(w, "./www/footer.html")
 		return
 	}
 	if r.Method == "GET" {
-		emitHTMLFromFile(w, r, "./www/header.html")
-		emitHTMLFromFile(w, r, "./www/registration-form.html")
-		emitHTMLFromFile(w, r, "./www/footer.html")
+		emitHTMLFromFile(w, "./www/header.html")
+		emitHTMLFromFile(w, "./www/registration-form.html")
+		emitHTMLFromFile(w, "./www/footer.html")
 	} else if r.Method == "POST" {
 		registerNewUser(w, r)
 	} else {
