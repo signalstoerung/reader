@@ -8,6 +8,24 @@ import (
 	"log"
 )
 
+
+type HeadlinesItem struct {
+	Link string
+	Title string
+	Timestamp string
+	FeedAbbr string
+}
+
+type HeadlinesPage struct {
+	Headlines []HeadlinesItem
+	Page int
+	HasPreviousPage bool
+	PreviousPage int
+	NextPage int
+	Filter string
+}
+
+
 /* functions that help with HTML output */
 
 // emitHTMLFromFile sends HTML from a file to w (if file exists)

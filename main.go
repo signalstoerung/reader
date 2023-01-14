@@ -28,6 +28,7 @@ import (
 	"log"
 	"fmt"
 	"sync"
+	"html/template"
 )
 
 /* Types */
@@ -123,16 +124,13 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 	page := 0
 	offset := 0
 	filter := ""
-	result := make([]string,0,limit)
+	result := make([]HeadlinesItem,limit)
 	
 	emitHTMLFromFile(w, "./www/header.html")
 	defer emitHTMLFromFile(w, "./www/footer.html")
 
 	emitFeedFilterHTML(w)
 
-	fmt.Fprintf(w, "		<div class=\"col\">")
-	defer fmt.Fprintf(w, "		</div>")
-	
 	pageQuery := r.URL.Query()
 	if pageQuery.Get("page") != "" {
 		p, err := strconv.Atoi(pageQuery.Get("page"))
@@ -148,19 +146,35 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	
-	err := loadItemsFromDB(db, &result, filter, limit, offset)
+	err := loadItems(db, &result, filter, limit, offset)
 	if err != nil {
 		log.Printf("Error in rootHandler: ",err)
+	} 
+
+	// build struct	that will be passed to template
+	pageStruct := HeadlinesPage{}
+	
+	pageStruct.Page = page
+	pageStruct.Filter = filter
+	pageStruct.Headlines = make([]HeadlinesItem,len(result))
+	n := copy(pageStruct.Headlines, result)
+	if n ==0 {
+		log.Printf("No headlines copied into template struct.")
 	}
-	for _,s := range result {
-		fmt.Fprintf(w, s)
-	}
+	
 	if page > 0 {
-		fmt.Fprintf(w, "<a href=\"/?page=%v&filter=%v\">Previous</a>",page-1, filter)
-	} else {
-		fmt.Fprintf(w, "Previous")
+		pageStruct.HasPreviousPage = true
+		pageStruct.PreviousPage = page - 1
+		} else {
+		pageStruct.HasPreviousPage = false
 	}
-		fmt.Fprintf(w, " | Page %v | <a href=\"/?page=%v&filter=%v\">Next</a>",page,page+1,filter)
+	pageStruct.NextPage = page + 1
+	
+	t := template.Must(template.ParseFiles("www/content-headlines.html"))
+	err = t.Execute(w, pageStruct)	
+	if err != nil {
+		log.Printf("Error executing template: %v",err)
+	}
 }
 
 // updateFeedsHandler serves "/update/", which triggers an update to the feeds
