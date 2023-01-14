@@ -126,11 +126,6 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 	filter := ""
 	result := make([]HeadlinesItem,limit)
 	
-	emitHTMLFromFile(w, "./www/header.html")
-	defer emitHTMLFromFile(w, "./www/footer.html")
-
-	emitFeedFilterHTML(w)
-
 	pageQuery := r.URL.Query()
 	if pageQuery.Get("page") != "" {
 		p, err := strconv.Atoi(pageQuery.Get("page"))
@@ -148,19 +143,23 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 	
 	err := loadItems(db, &result, filter, limit, offset)
 	if err != nil {
-		log.Printf("Error in rootHandler: ",err)
+		returnError(w, err.Error())
+		log.Printf(err.Error())
+		return
 	} 
+
+	emitHTMLFromFile(w, "./www/header.html")
+	defer emitHTMLFromFile(w, "./www/footer.html")
+
+	emitFeedFilterHTML(w)
+
 
 	// build struct	that will be passed to template
 	pageStruct := HeadlinesPage{}
 	
 	pageStruct.Page = page
 	pageStruct.Filter = filter
-	pageStruct.Headlines = make([]HeadlinesItem,len(result))
-	n := copy(pageStruct.Headlines, result)
-	if n ==0 {
-		log.Printf("No headlines copied into template struct.")
-	}
+	pageStruct.Headlines = result
 	
 	if page > 0 {
 		pageStruct.HasPreviousPage = true
