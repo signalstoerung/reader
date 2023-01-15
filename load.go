@@ -23,7 +23,7 @@ func loadItems(db *gorm.DB, resultSlice *[]HeadlinesItem, filter string, limit i
 	if result.Error != nil {
 		return result.Error
 	}
-	log.Printf("RowsAffected: %v",result.RowsAffected)
+// 	log.Printf("RowsAffected: %v",result.RowsAffected)
 
 	// I don't quite understand why RowsAffected is sometimes 1 and sometimes 0, but both return empty result slices, so catch it as an error
 	// this was what caused the panic later (calling .Format on a nil result)
