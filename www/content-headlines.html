@@ -1,6 +1,6 @@
 		<div class="col">
 			{{range .Headlines}}{{if not .Link}}{{break}}{{end}}
-				<div><a href="{{.Link}}" target="_blank">{{.Timestamp}} {{.FeedAbbr}}-{{.Title}}</a></div>
+				<div><a href="{{.Link}}" rel="noreferrer" target="_blank">{{.Timestamp}} {{.FeedAbbr}}-{{.Title}}</a></div>
 			{{end}}
 				<div>
 				{{ if .HasPreviousPage }}<a href="/?page={{.PreviousPage}}&filter={{.Filter}}">Previous</a>{{ else }}Previous{{end}} | Page {{.Page}} | <a href="/?page={{.NextPage}}&filter={{.Filter}}">Next</a>
