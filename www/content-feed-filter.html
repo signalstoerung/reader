@@ -1,4 +1,5 @@
-			<div class="col-auto order-5"> 
+<!-- 
+			<div class="d-none d-sm-block col-sm-1 order-5"> 
 			{{range .}} 
                 <div>
                     <a href="/?filter={{.}}">{{.}}</a>
@@ -8,3 +9,14 @@
                     <a href="/">Clear</a>
                 </div>
             </div>
+ -->
+
+			<div class="col"> 
+				<div class="p-2">
+				{{range .}} 
+					<a href="/?filter={{.}}">{{.}}</a> |
+				{{end}}<a href="/">Clear</a>
+				</div>
+            </div>            
+	</div>
+	<div class="row">
