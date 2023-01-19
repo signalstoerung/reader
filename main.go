@@ -81,6 +81,9 @@ var registrationsOpen bool = false
 // logging level
 var logDebugLevel bool = false
 
+// time Zone
+var localTZ = time.FixedZone("CET",int((1*time.Hour).Seconds()))
+
 
 /* DB functions */
 
