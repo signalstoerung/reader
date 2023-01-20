@@ -151,7 +151,7 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	limit := globalConfig.ResultsPerPage
-	page := 0
+	page := 1
 	offset := 0
 	filter := ""
 	result := make([]HeadlinesItem,limit)
@@ -160,8 +160,17 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 	if pageQuery.Get("page") != "" {
 		p, err := strconv.Atoi(pageQuery.Get("page"))
 		if err == nil {
+			if p < 1 {
+				// can't have negative page numbers
+				// someone is messing with the input
+				p = 1
+			}
 			page = p
-			offset = p*limit
+			// we want the user to see the first page as Page 1, but we want offset to be 0
+			// so subtract 1 from the page number shown to the user
+			offset = (p-1)*limit
+		} else {
+			log.Printf("Illegal value for page (%v). Ignoring.",pageQuery.Get("page"))
 		}
 	}
 	
@@ -191,7 +200,7 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 	pageStruct.Filter = filter
 	pageStruct.Headlines = result
 	
-	if page > 0 {
+	if page > 1 {
 		pageStruct.HasPreviousPage = true
 		pageStruct.PreviousPage = page - 1
 		} else {
