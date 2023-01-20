@@ -10,8 +10,12 @@ It polls RSS feeds and displays them in a "news ticker" style: A timestamp, a ta
 
 I have Reader deployed in a docker container and behind a NGINX reverse proxy. It currently runs on an EC2 micro instance. (It could probably run on a nano instance, too, but docker ran out of memory compiling the container.)
 
-Installation steps (assuming that you also want to use Docker):
-- Install nginx and certificates from Let's Encrypt
+Assuming that you also want to run it as a Docker container, then instructions are below.
+
+For **local testing**, create a directory `./db/` in the work directory (Reader will store the sqlite database there), copy the sample config file into the same directory, rename it `config.yaml` and edit it as appropriate. Then you can run Reader with `go run .` and access it in a browser at `localhost:8000`.
+
+Installation steps for **deployment on a web server with Docker**:
+- Install docker, nginx and certificates from Let's Encrypt
 - Clone the git repository
 - Create a Docker volume (to store the sqlite database and the config file, so that they are persistent if you upgrade the container to a new version)
 - Build the container image
