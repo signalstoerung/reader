@@ -17,7 +17,6 @@ func adminPostHandler(w http.ResponseWriter, r *http.Request) {
 	rawAbbr := r.PostForm.Get("abbr")
 	rawUrl := r.PostForm.Get("url")
 	_, err := url.ParseRequestURI(rawUrl)
-//  	fmt.Printf("%v %v %v\n",isAlphaNum(rawTitle), isAlpha(rawAbbr), err)
 	if isAlphaNum(rawTitle) && isAlpha(rawAbbr) && err == nil {
 		newFeed.Name = rawTitle
 		newFeed.Abbr = firstN(rawAbbr, 4)
@@ -34,7 +33,6 @@ func adminPostHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/feeds/", http.StatusSeeOther)
 }
 
-
 func adminGetHandler(w http.ResponseWriter, r *http.Request) {
 
 	q := r.URL.Query()
@@ -43,18 +41,18 @@ func adminGetHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			emitHTMLFromFile(w, "./www/header.html")
 			defer emitHTMLFromFile(w, "./www/footer.html")
-			fmt.Fprintf(w,"Error: %v",err)
+			fmt.Fprintf(w, "Error: %v", err)
 			return
 		}
-		result := db.Delete(&Feed{},id)
+		result := db.Delete(&Feed{}, id)
 		if result.Error != nil {
 			emitHTMLFromFile(w, "./www/header.html")
 			defer emitHTMLFromFile(w, "./www/footer.html")
-			fmt.Fprintf(w,"Error: %v",result.Error)
+			fmt.Fprintf(w, "Error: %v", result.Error)
 			return
 		}
 		http.Redirect(w, r, "/feeds/", http.StatusSeeOther)
-	
+
 	} else {
 		emitHTMLFromFile(w, "./www/header.html")
 		defer emitHTMLFromFile(w, "./www/footer.html")
