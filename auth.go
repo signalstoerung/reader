@@ -18,9 +18,8 @@ import (
 
 // Provides a secret key for signing cookies.
 // TODO: Remove hard-coded secret and put into configuration file.
-func secretKey() []byte {
-	const secret = "23f7b439110cdae1bc133e42565fe17d5eb7dfec4a2522cc923e4aa313a12083" 
-	key, err := hex.DecodeString(secret)
+func secretKey() []byte { 
+	key, err := hex.DecodeString(globalConfig.Secret)
 	if err != nil {
 		log.Fatal(err)
 	}

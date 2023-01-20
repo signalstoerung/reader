@@ -29,6 +29,7 @@ import (
 	"fmt"
 	"sync"
 	"html/template"
+	"gopkg.in/yaml.v3"
 )
 
 /* Types */
@@ -59,6 +60,14 @@ type User struct {
 	sessionId uuid.UUID //unexported field should be ignored by gorm
 }
 
+type Config struct {
+	UpdateFrequency int `yaml:"updateFrequency"`
+	TimeZoneGMTOffset int `yaml:"gmtOffset"`
+	Secret string `yaml:"secret"`
+	localTZ *time.Location
+}
+
+
 type UserSessions map[string]User
 
 /* Global variables */
@@ -69,8 +78,6 @@ var db *gorm.DB
 // The global variable wg is used to synchronise goroutines
 var wg sync.WaitGroup
 
-// Frequency of automatic updates, in minutes
-const updateFrequency = 15 
 
 // store user sessions
 var userSessions UserSessions = make(map[string]User)
@@ -81,8 +88,27 @@ var registrationsOpen bool = false
 // logging level
 var logDebugLevel bool = false
 
-// time Zone
-var localTZ = time.FixedZone("CET",int((1*time.Hour).Seconds()))
+// configuration items read from config.yaml file
+var globalConfig Config
+
+/* Config */
+
+func loadConfig () error {
+	f, err := os.Open("db/config.yaml")
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	
+	decoder := yaml.NewDecoder(f)
+	err = decoder.Decode(&globalConfig)
+	if err != nil {
+		return err
+	}
+	offset := globalConfig.TimeZoneGMTOffset*3600
+	globalConfig.localTZ = time.FixedZone("Local",offset)
+	return nil
+}
 
 
 /* DB functions */
@@ -248,6 +274,18 @@ func registrationHandler (w http.ResponseWriter, r *http.Request) {
 /* MAIN */
 
 func main() {
+// load config
+	if err := loadConfig(); err != nil {
+		log.Printf("Couldn't load configuation (%v).", err)
+		panic("Couldn't load configuration file.")
+//		globalConfig = Config{
+//			UpdateFrequency: 15,
+//			TimeZoneGMTOffset: 1,
+//			Secret: "23f7b439110cdae1bc133e42565fe17d5eb7dfec4a2522cc923e4aa313a12083",
+//		}
+//		globalConfig.localTZ = time.FixedZone("CET",3600)
+	}
+
 //	recreate reader.db if it doesn't exist
 	if _, err := os.Stat("./db/reader.db"); err != nil {
 		if errors.Is(err, os.ErrNotExist) {
@@ -279,10 +317,10 @@ func main() {
 
 
 // start a ticker for periodic refresh using the const updateFrequency
-	ticker := time.NewTicker(updateFrequency * time.Minute)
+	ticker := time.NewTicker(time.Duration(globalConfig.UpdateFrequency) * time.Minute)
 	quit := make(chan int)
 	defer close(quit)
-	log.Print("Starting ticker for periodic update.")
+	log.Printf("Starting ticker for periodic update (%v minutes).",globalConfig.UpdateFrequency)
 	go periodicUpdates(ticker, quit)
 
 // serve web app
