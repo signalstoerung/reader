@@ -1,0 +1,13 @@
+# Sample configuration file. Edit and move into /db folder
+
+# updateFrequency in minutes
+updateFrequency: 15
+
+# gmtOffset in hours - positive for east, negative for west
+gmtOffset: 1
+
+# secret is a 64 hex character string
+secret: ... 
+
+# results per page
+resultsPerPage: 25
