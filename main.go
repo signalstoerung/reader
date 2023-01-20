@@ -64,6 +64,7 @@ type Config struct {
 	UpdateFrequency int `yaml:"updateFrequency"`
 	TimeZoneGMTOffset int `yaml:"gmtOffset"`
 	Secret string `yaml:"secret"`
+	ResultsPerPage int `yaml:"resultsPerPage"`
 	localTZ *time.Location
 }
 
@@ -149,7 +150,7 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/login/", http.StatusSeeOther)
 		return
 	}
-	limit := 15
+	limit := globalConfig.ResultsPerPage
 	page := 0
 	offset := 0
 	filter := ""
