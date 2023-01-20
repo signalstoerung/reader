@@ -2,13 +2,13 @@
 
 Reader is a simple web-based RSS reader written in Go.
 
-It polls RSS feeds and displays them in a "news ticker" style: A timestamp, a tag identifying the source, and a headline. Clicking on the headline opens the article in a new window.
+It polls RSS feeds and displays them in a "news ticker" style: A timestamp, a tag identifying the source, and a headline. 
 
 ![](docs/tickr.png)
 
 ## Installation
 
-If have Reader deployed in a docker container and behind a NGINX reverse proxy. It currently runs on an EC2 micro instance. (It could probably run on a nano instance, too, but docker ran out of memory compiling the container.)
+I have Reader deployed in a docker container and behind a NGINX reverse proxy. It currently runs on an EC2 micro instance. (It could probably run on a nano instance, too, but docker ran out of memory compiling the container.)
 
 Installation steps (assuming that you also want to use Docker):
 - Install nginx and certificates from Let's Encrypt
