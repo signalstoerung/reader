@@ -181,7 +181,7 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 	err := loadItems(db, &result, filter, limit, offset)
 	if err != nil {
 		returnError(w, err.Error())
-		log.Printf(err.Error())
+		log.Println(err.Error())
 		return
 	}
 
