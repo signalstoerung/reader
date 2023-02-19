@@ -293,36 +293,56 @@ func apiHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Wrong or missing API token", http.StatusBadRequest)
 		return
 	}
-	var limit, page, offset int
-	var filter string
-	var err error
+	// we have a verified token at this point
 
-	limit, err = strconv.Atoi(r.Form.Get("limit"))
-	if err != nil {
-		limit = globalConfig.ResultsPerPage
+	path := r.URL.Path
+	log.Printf("%v requested", path)
+
+	if path == "/api/feeds/" {
+		var feeds []Feed
+		result := db.Find(&feeds)
+		if result.Error != nil {
+			http.Error(w, fmt.Sprintf("Error: %v", result.Error), http.StatusInternalServerError)
+			return
+		}
+		encoder := json.NewEncoder(w)
+		encoder.Encode(feeds)
 	}
 
-	page, err = strconv.Atoi(r.Form.Get("page"))
-	if err != nil {
-		page = 1
-	}
+	if path == "/api/headlines/" {
+		var limit, page, offset int
+		var filter string
+		var err error
 
-	filter = r.Form.Get("filter")
-	if !isAlpha(filter) {
-		filter = ""
-	}
+		limit, err = strconv.Atoi(r.Form.Get("limit"))
+		if err != nil {
+			limit = globalConfig.ResultsPerPage
+		}
 
-	offset = (page - 1) * limit
+		page, err = strconv.Atoi(r.Form.Get("page"))
+		if err != nil {
+			page = 1
+		}
 
-	result := make([]HeadlinesItem, limit)
-	err = loadItems(db, &result, filter, limit, offset)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("Error loading items: %v", err), http.StatusInternalServerError)
+		filter = r.Form.Get("filter")
+		if !isAlpha(filter) {
+			filter = ""
+		}
+
+		offset = (page - 1) * limit
+
+		result := make([]HeadlinesItem, limit)
+		err = loadItems(db, &result, filter, limit, offset)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Error loading items: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		encoder := json.NewEncoder(w)
+		encoder.Encode(result)
 		return
 	}
 
-	encoder := json.NewEncoder(w)
-	encoder.Encode(result)
 }
 
 /* MAIN */
