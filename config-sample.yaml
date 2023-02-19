@@ -11,3 +11,9 @@ secret: ...
 
 # results per page
 resultsPerPage: 25
+
+# translation api key
+deeplApiKey: ...
+
+# api token
+apiToken: ...

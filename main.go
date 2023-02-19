@@ -16,6 +16,7 @@ Automatic updates take place with the frequency (in minutes) defined by updateFr
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"html/template"
@@ -66,6 +67,7 @@ type Config struct {
 	Secret            string `yaml:"secret"`
 	ResultsPerPage    int    `yaml:"resultsPerPage"`
 	DeeplApiKey       string `yaml:"deeplApiKey"`
+	ApiToken          string `yaml:"apiToken"`
 	localTZ           *time.Location
 }
 
@@ -277,6 +279,52 @@ func registrationHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func apiHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Must use POST", http.StatusBadRequest)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Error parsing form data", http.StatusInternalServerError)
+		return
+	}
+	token := r.Form.Get("token")
+	if token != globalConfig.ApiToken {
+		http.Error(w, "Wrong or missing API token", http.StatusBadRequest)
+		return
+	}
+	var limit, page, offset int
+	var filter string
+	var err error
+
+	limit, err = strconv.Atoi(r.Form.Get("limit"))
+	if err != nil {
+		limit = globalConfig.ResultsPerPage
+	}
+
+	page, err = strconv.Atoi(r.Form.Get("page"))
+	if err != nil {
+		page = 1
+	}
+
+	filter = r.Form.Get("filter")
+	if !isAlpha(filter) {
+		filter = ""
+	}
+
+	offset = (page - 1) * limit
+
+	result := make([]HeadlinesItem, limit)
+	err = loadItems(db, &result, filter, limit, offset)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error loading items: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	encoder := json.NewEncoder(w)
+	encoder.Encode(result)
+}
+
 /* MAIN */
 
 func main() {
@@ -284,12 +332,6 @@ func main() {
 	if err := loadConfig(); err != nil {
 		log.Printf("Couldn't load configuation (%v).", err)
 		panic("Couldn't load configuration file.")
-		//		globalConfig = Config{
-		//			UpdateFrequency: 15,
-		//			TimeZoneGMTOffset: 1,
-		//			Secret: "23f7b439110cdae1bc133e42565fe17d5eb7dfec4a2522cc923e4aa313a12083",
-		//		}
-		//		globalConfig.localTZ = time.FixedZone("CET",3600)
 	}
 
 	//	recreate reader.db if it doesn't exist
@@ -318,6 +360,7 @@ func main() {
 	http.HandleFunc("/feeds/", adminFeedsHandler)
 	http.HandleFunc("/login/", loginHandler)
 	http.HandleFunc("/register/", registrationHandler)
+	http.HandleFunc("/api/", apiHandler)
 	staticFileHandler := http.FileServer(http.Dir("./www"))
 	http.Handle("/static/", staticFileHandler)
 
