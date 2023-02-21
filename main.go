@@ -305,9 +305,6 @@ func apiHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Wrong or missing API token", http.StatusBadRequest)
 		return
 	}
-	// we have a verified token at this point
-
-	log.Printf("%v requested", path)
 
 	switch path {
 	case "/api/feeds/":
@@ -350,14 +347,14 @@ func main() {
 	}
 
 	// register handlers
-	http.HandleFunc("/", rootHandler)
+	// http.HandleFunc("/", rootHandler)
 	http.HandleFunc("/update/", updateFeedsHandler)
 	http.HandleFunc("/feeds/", adminFeedsHandler)
 	http.HandleFunc("/login/", loginHandler)
 	http.HandleFunc("/register/", registrationHandler)
 	http.HandleFunc("/api/", apiHandler)
-	staticFileHandler := http.FileServer(http.Dir("./www"))
-	http.Handle("/static/", staticFileHandler)
+	staticFileHandler := http.FileServer(http.Dir("./www/static"))
+	http.Handle("/", staticFileHandler)
 
 	// start a ticker for periodic refresh using the const updateFrequency
 	ticker := time.NewTicker(time.Duration(globalConfig.UpdateFrequency) * time.Minute)
