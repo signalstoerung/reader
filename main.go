@@ -16,7 +16,6 @@ Automatic updates take place with the frequency (in minutes) defined by updateFr
 package main
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"html/template"
@@ -83,6 +82,9 @@ var wg sync.WaitGroup
 
 // store user sessions
 var userSessions UserSessions = make(map[string]User)
+
+// store api tokens
+var issuedTokens = make(map[string]string)
 
 // allow registrations or not
 var registrationsOpen bool = false
@@ -288,59 +290,32 @@ func apiHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error parsing form data", http.StatusInternalServerError)
 		return
 	}
+
+	path := r.URL.Path
+
+	// client trying to log in
+	if path == "/api/gettoken/" {
+		apiLogin(w, r)
+		return
+	}
+
 	token := r.Form.Get("token")
-	if token != globalConfig.ApiToken {
+
+	if !tokenExists(token) {
 		http.Error(w, "Wrong or missing API token", http.StatusBadRequest)
 		return
 	}
 	// we have a verified token at this point
 
-	path := r.URL.Path
 	log.Printf("%v requested", path)
 
-	if path == "/api/feeds/" {
-		var feeds []Feed
-		result := db.Find(&feeds)
-		if result.Error != nil {
-			http.Error(w, fmt.Sprintf("Error: %v", result.Error), http.StatusInternalServerError)
-			return
-		}
-		encoder := json.NewEncoder(w)
-		encoder.Encode(feeds)
-	}
-
-	if path == "/api/headlines/" {
-		var limit, page, offset int
-		var filter string
-		var err error
-
-		limit, err = strconv.Atoi(r.Form.Get("limit"))
-		if err != nil {
-			limit = globalConfig.ResultsPerPage
-		}
-
-		page, err = strconv.Atoi(r.Form.Get("page"))
-		if err != nil {
-			page = 1
-		}
-
-		filter = r.Form.Get("filter")
-		if !isAlpha(filter) {
-			filter = ""
-		}
-
-		offset = (page - 1) * limit
-
-		result := make([]HeadlinesItem, limit)
-		err = loadItems(db, &result, filter, limit, offset)
-		if err != nil {
-			http.Error(w, fmt.Sprintf("Error loading items: %v", err), http.StatusInternalServerError)
-			return
-		}
-
-		encoder := json.NewEncoder(w)
-		encoder.Encode(result)
-		return
+	switch path {
+	case "/api/feeds/":
+		apiFeeds(w)
+	case "/api/headlines/":
+		apiHeadlines(w, r)
+	default:
+		http.Error(w, "Invalid endpoint", http.StatusBadRequest)
 	}
 
 }
