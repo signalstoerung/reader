@@ -299,6 +299,11 @@ func apiHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if path == "/api/user/add/" {
+		apiAddUser(w, r)
+		return
+	}
+
 	token := r.Form.Get("token")
 
 	if !tokenExists(token) {
@@ -308,7 +313,11 @@ func apiHandler(w http.ResponseWriter, r *http.Request) {
 
 	switch path {
 	case "/api/feeds/":
-		apiFeeds(w)
+		apiFeedList(w)
+	case "/api/feed/add/":
+		apiAddFeed(w, r)
+	case "/api/feed/delete/":
+		apiDeleteFeed(w, r)
 	case "/api/headlines/":
 		apiHeadlines(w, r)
 	default:
