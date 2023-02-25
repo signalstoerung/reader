@@ -17,16 +17,12 @@ package main
 
 import (
 	"errors"
-	"fmt"
-	"html/template"
 	"log"
 	"net/http"
 	"os"
-	"strconv"
 	"sync"
 	"time"
 
-	"github.com/google/uuid"
 	"gopkg.in/yaml.v3"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -55,9 +51,8 @@ type Item struct {
 // The User struct stores a user (with a session UUID)
 type User struct {
 	gorm.Model
-	UserName  string
-	Password  string
-	sessionId uuid.UUID //unexported field should be ignored by gorm
+	UserName string
+	Password string
 }
 
 type Config struct {
@@ -66,7 +61,6 @@ type Config struct {
 	Secret            string `yaml:"secret"`
 	ResultsPerPage    int    `yaml:"resultsPerPage"`
 	DeeplApiKey       string `yaml:"deeplApiKey"`
-	ApiToken          string `yaml:"apiToken"`
 	localTZ           *time.Location
 }
 
@@ -80,17 +74,11 @@ var db *gorm.DB
 // The global variable wg is used to synchronise goroutines
 var wg sync.WaitGroup
 
-// store user sessions
-var userSessions UserSessions = make(map[string]User)
-
 // store api tokens
 var issuedTokens = make(map[string]string)
 
 // allow registrations or not
 var registrationsOpen bool = false
-
-// logging level
-var logDebugLevel bool = false
 
 // configuration items read from config.yaml file
 var globalConfig Config
@@ -145,141 +133,6 @@ func initializeDB(db *gorm.DB) {
 }
 
 /* Request handler functions */
-
-// rootHandler serves "/"
-func rootHandler(w http.ResponseWriter, r *http.Request) {
-	if !isAuthenticated(r) {
-		http.Redirect(w, r, "/login/", http.StatusSeeOther)
-		return
-	}
-	limit := globalConfig.ResultsPerPage
-	page := 1
-	offset := 0
-	filter := ""
-	result := make([]HeadlinesItem, limit)
-
-	pageQuery := r.URL.Query()
-	if pageQuery.Get("page") != "" {
-		p, err := strconv.Atoi(pageQuery.Get("page"))
-		if err == nil {
-			if p < 1 {
-				// can't have negative page numbers
-				// someone is messing with the input
-				p = 1
-			}
-			page = p
-			// we want the user to see the first page as Page 1, but we want offset to be 0
-			// so subtract 1 from the page number shown to the user
-			offset = (p - 1) * limit
-		} else {
-			log.Printf("Illegal value for page (%v). Ignoring.", pageQuery.Get("page"))
-		}
-	}
-
-	if f := pageQuery.Get("filter"); f != "" {
-		if isAlpha(f) {
-			filter = firstN(f, 4)
-		}
-	}
-
-	err := loadItems(db, &result, filter, limit, offset)
-	if err != nil {
-		returnError(w, err.Error())
-		log.Println(err.Error())
-		return
-	}
-
-	emitHTMLFromFile(w, "./www/header.html")
-	defer emitHTMLFromFile(w, "./www/footer.html")
-
-	emitFeedFilterHTML(w)
-
-	// build struct	that will be passed to template
-	pageStruct := HeadlinesPage{}
-
-	pageStruct.Page = page
-	pageStruct.Filter = filter
-	pageStruct.Headlines = result
-
-	if page > 1 {
-		pageStruct.HasPreviousPage = true
-		pageStruct.PreviousPage = page - 1
-	} else {
-		pageStruct.HasPreviousPage = false
-	}
-	pageStruct.NextPage = page + 1
-
-	t := template.Must(template.ParseFiles("www/content-headlines.html"))
-	err = t.Execute(w, pageStruct)
-	if err != nil {
-		log.Printf("Error executing template: %v", err)
-	}
-}
-
-// updateFeedsHandler serves "/update/", which triggers an update to the feeds
-func updateFeedsHandler(w http.ResponseWriter, r *http.Request) {
-	if !isAuthenticated(r) {
-		http.Redirect(w, r, "/login/", http.StatusSeeOther)
-		return
-	}
-	emitHTMLFromFile(w, "./www/header.html")
-	defer emitHTMLFromFile(w, "./www/footer.html")
-
-	log.Print("Updating feeds...")
-	err := ingestFromDB(db)
-	if err != nil {
-		fmt.Fprintf(w, "<div>Error updating feeds: %v</div>", err)
-	} else {
-		fmt.Fprintf(w, "<div>Feeds updated successfully.</div>")
-	}
-	fmt.Fprintf(w, "<div><a href=\"/\">Return to homepage</a></div>")
-}
-
-// adminFeedsHandler serves "/feeds/", which allows deletion and creation of feeds.
-// it calls adminGetHandler or adminPostHandler depending on request method.
-func adminFeedsHandler(w http.ResponseWriter, r *http.Request) {
-	if !isAuthenticated(r) {
-		http.Redirect(w, r, "/login/", http.StatusSeeOther)
-		return
-	}
-	if r.Method == "GET" {
-		adminGetHandler(w, r)
-	} else if r.Method == "POST" {
-		adminPostHandler(w, r)
-	} else {
-		http.Error(w, "Invalid request.", http.StatusInternalServerError)
-	}
-}
-
-func loginHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "GET" {
-		emitHTMLFromFile(w, "./www/header.html")
-		emitHTMLFromFile(w, "./www/login-form.html")
-		emitHTMLFromFile(w, "./www/footer.html")
-	} else if r.Method == "POST" {
-		checkPassword(w, r)
-	} else {
-		http.Error(w, "Invalid request.", http.StatusInternalServerError)
-	}
-}
-
-func registrationHandler(w http.ResponseWriter, r *http.Request) {
-	if !registrationsOpen {
-		emitHTMLFromFile(w, "./www/header.html")
-		fmt.Fprint(w, "<b>Sorry, no new signups are allowed.</b>")
-		emitHTMLFromFile(w, "./www/footer.html")
-		return
-	}
-	if r.Method == "GET" {
-		emitHTMLFromFile(w, "./www/header.html")
-		emitHTMLFromFile(w, "./www/registration-form.html")
-		emitHTMLFromFile(w, "./www/footer.html")
-	} else if r.Method == "POST" {
-		registerNewUser(w, r)
-	} else {
-		http.Error(w, "Invalid request.", http.StatusInternalServerError)
-	}
-}
 
 func apiHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
@@ -356,11 +209,6 @@ func main() {
 	}
 
 	// register handlers
-	// http.HandleFunc("/", rootHandler)
-	http.HandleFunc("/update/", updateFeedsHandler)
-	http.HandleFunc("/feeds/", adminFeedsHandler)
-	http.HandleFunc("/login/", loginHandler)
-	http.HandleFunc("/register/", registrationHandler)
 	http.HandleFunc("/api/", apiHandler)
 	staticFileHandler := http.FileServer(http.Dir("./www/static"))
 	http.Handle("/", staticFileHandler)

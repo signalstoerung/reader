@@ -14,6 +14,3 @@ resultsPerPage: 25
 
 # translation api key
 deeplApiKey: ...
-
-# api token
-apiToken: ...
