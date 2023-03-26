@@ -11,7 +11,7 @@ COPY go.sum ./
 RUN go mod download
 
 COPY *.go ./
-COPY www/*.html ./www/
+COPY www ./www/
 
 RUN go build -o /reader
 

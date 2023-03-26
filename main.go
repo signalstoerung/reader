@@ -4,12 +4,9 @@ and displayed in the style of a ticker with only headlines.
 
 It starts up a web server that serves:
 
-	/         	the headlines (paginated and optionally filtered)
-	/feeds/   	an interface to add or delete feeds
-	/update/  	manually trigger a feed update
-	/register/	for initial user registration (only open at first startup)
-	/login/ 		to log in
-	/static/		for static files
+	/         the headlines (paginated and optionally filtered)
+	/feeds/   an interface to add or delete feeds
+	/update/  manually trigger a feed update
 
 In the backend, Reader uses an sqlite database, stored in the subfolder ./db/. At first startup, when the DB does not exist,
 it is created and seeded with a couple of recommended feeds.
@@ -20,16 +17,12 @@ package main
 
 import (
 	"errors"
-	"fmt"
-	"html/template"
 	"log"
 	"net/http"
 	"os"
-	"strconv"
 	"sync"
 	"time"
 
-	"github.com/google/uuid"
 	"gopkg.in/yaml.v3"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -58,9 +51,8 @@ type Item struct {
 // The User struct stores a user (with a session UUID)
 type User struct {
 	gorm.Model
-	UserName  string
-	Password  string
-	sessionId uuid.UUID //unexported field should be ignored by gorm
+	UserName string
+	Password string
 }
 
 // The Config struct stores global configuration variables, as imported from the config.yaml file.
@@ -69,6 +61,7 @@ type Config struct {
 	TimeZoneGMTOffset int    `yaml:"gmtOffset"`
 	Secret            string `yaml:"secret"`
 	ResultsPerPage    int    `yaml:"resultsPerPage"`
+	DeeplApiKey       string `yaml:"deeplApiKey"`
 	localTZ           *time.Location
 }
 
@@ -83,14 +76,11 @@ var db *gorm.DB
 // The global variable wg is used to synchronise goroutines
 var wg sync.WaitGroup
 
-// store user sessions
-var userSessions UserSessions = make(map[string]User)
+// store api tokens
+var issuedTokens = make(map[string]string)
 
 // allow registrations or not
 var registrationsOpen bool = false
-
-// logging level
-var logDebugLevel bool = false
 
 // configuration items read from config.yaml file
 var globalConfig Config
@@ -146,139 +136,49 @@ func initializeDB(db *gorm.DB) {
 
 /* Request handler functions */
 
-// rootHandler serves "/"
-func rootHandler(w http.ResponseWriter, r *http.Request) {
-	if !isAuthenticated(r) {
-		http.Redirect(w, r, "/login/", http.StatusSeeOther)
+func apiHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Must use POST", http.StatusBadRequest)
 		return
 	}
-	limit := globalConfig.ResultsPerPage
-	page := 1
-	offset := 0
-	filter := ""
-	result := make([]HeadlinesItem, limit)
-
-	pageQuery := r.URL.Query()
-	if pageQuery.Get("page") != "" {
-		p, err := strconv.Atoi(pageQuery.Get("page"))
-		if err == nil {
-			if p < 1 {
-				// can't have negative page numbers
-				// someone is messing with the input
-				p = 1
-			}
-			page = p
-			// we want the user to see the first page as Page 1, but we want offset to be 0
-			// so subtract 1 from the page number shown to the user
-			offset = (p - 1) * limit
-		} else {
-			log.Printf("Illegal value for page (%v). Ignoring.", pageQuery.Get("page"))
-		}
-	}
-
-	if f := pageQuery.Get("filter"); f != "" {
-		if isAlpha(f) {
-			filter = firstN(f, 4)
-		}
-	}
-
-	err := loadItems(db, &result, filter, limit, offset)
-	if err != nil {
-		returnError(w, err.Error())
-		log.Printf(err.Error())
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Error parsing form data", http.StatusInternalServerError)
 		return
 	}
 
-	emitHTMLFromFile(w, "./www/header.html")
-	defer emitHTMLFromFile(w, "./www/footer.html")
+	path := r.URL.Path
 
-	emitFeedFilterHTML(w)
-
-	// build struct	that will be passed to template
-	pageStruct := HeadlinesPage{}
-
-	pageStruct.Page = page
-	pageStruct.Filter = filter
-	pageStruct.Headlines = result
-
-	if page > 1 {
-		pageStruct.HasPreviousPage = true
-		pageStruct.PreviousPage = page - 1
-	} else {
-		pageStruct.HasPreviousPage = false
-	}
-	pageStruct.NextPage = page + 1
-
-	t := template.Must(template.ParseFiles("www/content-headlines.html"))
-	err = t.Execute(w, pageStruct)
-	if err != nil {
-		log.Printf("Error executing template: %v", err)
-	}
-}
-
-// updateFeedsHandler serves "/update/", which triggers an update to the feeds
-func updateFeedsHandler(w http.ResponseWriter, r *http.Request) {
-	if !isAuthenticated(r) {
-		http.Redirect(w, r, "/login/", http.StatusSeeOther)
+	// client trying to log in
+	if path == "/api/gettoken/" {
+		apiLogin(w, r)
 		return
 	}
-	emitHTMLFromFile(w, "./www/header.html")
-	defer emitHTMLFromFile(w, "./www/footer.html")
 
-	log.Print("Updating feeds...")
-	err := ingestFromDB(db)
-	if err != nil {
-		fmt.Fprintf(w, "<div>Error updating feeds: %v</div>", err)
-	} else {
-		fmt.Fprintf(w, "<div>Feeds updated successfully.</div>")
-	}
-	fmt.Fprintf(w, "<div><a href=\"/\">Return to homepage</a></div>")
-}
-
-// adminFeedsHandler serves "/feeds/", which allows deletion and creation of feeds.
-// it calls adminGetHandler or adminPostHandler depending on request method.
-func adminFeedsHandler(w http.ResponseWriter, r *http.Request) {
-	if !isAuthenticated(r) {
-		http.Redirect(w, r, "/login/", http.StatusSeeOther)
+	if path == "/api/user/add/" {
+		apiAddUser(w, r)
 		return
 	}
-	if r.Method == "GET" {
-		adminGetHandler(w, r)
-	} else if r.Method == "POST" {
-		adminPostHandler(w, r)
-	} else {
-		http.Error(w, "Invalid request.", http.StatusInternalServerError)
-	}
-}
 
-func loginHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "GET" {
-		emitHTMLFromFile(w, "./www/header.html")
-		emitHTMLFromFile(w, "./www/login-form.html")
-		emitHTMLFromFile(w, "./www/footer.html")
-	} else if r.Method == "POST" {
-		checkPassword(w, r)
-	} else {
-		http.Error(w, "Invalid request.", http.StatusInternalServerError)
-	}
-}
+	token := r.Form.Get("token")
 
-func registrationHandler(w http.ResponseWriter, r *http.Request) {
-	if !registrationsOpen {
-		emitHTMLFromFile(w, "./www/header.html")
-		fmt.Fprint(w, "<b>Sorry, no new signups are allowed.</b>")
-		emitHTMLFromFile(w, "./www/footer.html")
+	if !tokenExists(token) {
+		http.Error(w, "Wrong or missing API token", http.StatusBadRequest)
 		return
 	}
-	if r.Method == "GET" {
-		emitHTMLFromFile(w, "./www/header.html")
-		emitHTMLFromFile(w, "./www/registration-form.html")
-		emitHTMLFromFile(w, "./www/footer.html")
-	} else if r.Method == "POST" {
-		registerNewUser(w, r)
-	} else {
-		http.Error(w, "Invalid request.", http.StatusInternalServerError)
+
+	switch path {
+	case "/api/feeds/":
+		apiFeedList(w)
+	case "/api/feed/add/":
+		apiAddFeed(w, r)
+	case "/api/feed/delete/":
+		apiDeleteFeed(w, r)
+	case "/api/headlines/":
+		apiHeadlines(w, r)
+	default:
+		http.Error(w, "Invalid endpoint", http.StatusBadRequest)
 	}
+
 }
 
 /* MAIN */
@@ -288,12 +188,6 @@ func main() {
 	if err := loadConfig(); err != nil {
 		log.Printf("Couldn't load configuation (%v).", err)
 		panic("Couldn't load configuration file.")
-		//		globalConfig = Config{
-		//			UpdateFrequency: 15,
-		//			TimeZoneGMTOffset: 1,
-		//			Secret: "23f7b439110cdae1bc133e42565fe17d5eb7dfec4a2522cc923e4aa313a12083",
-		//		}
-		//		globalConfig.localTZ = time.FixedZone("CET",3600)
 	}
 
 	//	recreate reader.db if it doesn't exist
@@ -317,13 +211,9 @@ func main() {
 	}
 
 	// register handlers
-	http.HandleFunc("/", rootHandler)
-	http.HandleFunc("/update/", updateFeedsHandler)
-	http.HandleFunc("/feeds/", adminFeedsHandler)
-	http.HandleFunc("/login/", loginHandler)
-	http.HandleFunc("/register/", registrationHandler)
-	staticFileHandler := http.FileServer(http.Dir("./www"))
-	http.Handle("/static/", staticFileHandler)
+	http.HandleFunc("/api/", apiHandler)
+	staticFileHandler := http.FileServer(http.Dir("./www/static"))
+	http.Handle("/", staticFileHandler)
 
 	// start a ticker for periodic refresh using the const updateFrequency
 	ticker := time.NewTicker(time.Duration(globalConfig.UpdateFrequency) * time.Minute)

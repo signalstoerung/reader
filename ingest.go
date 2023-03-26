@@ -5,11 +5,11 @@ import (
 	"encoding/base64"
 	"errors"
 	"log"
+	"time"
+
 	"github.com/mmcdole/gofeed"
 	"gorm.io/gorm"
-	"time"
 )
-
 
 // ingestFromDB loads the feed list from the DB, then calls ingestFromUrlWriteToDB (concurrently) to load all feed items and write them to the DB (skipping duplicates).
 func ingestFromDB(db *gorm.DB) error {
@@ -17,7 +17,7 @@ func ingestFromDB(db *gorm.DB) error {
 
 	result := db.Find(&feeds)
 	if result.RowsAffected == 0 {
-		return errors.New("No feeds found.")
+		return errors.New("no feeds found")
 	}
 	if result.Error != nil {
 		return result.Error
@@ -38,9 +38,9 @@ func ingestFromUrlWriteToDB(db *gorm.DB, u string, abbr string) {
 	if err != nil {
 		return
 	}
-	log.Printf("Updating %s.",feed.Title)
+	log.Printf("Updating %s.", feed.Title)
 	for _, item := range feed.Items {
-		// this is our way of avoiding duplicates. We hash the link and then check the DB for this hash. 
+		// this is our way of avoiding duplicates. We hash the link and then check the DB for this hash.
 		// It's a unique key, so trying to insert a duplicate will throw an error. Hence we use gorm's "First or create", which is roughly the same as "INSERT IGNORE"
 		hash := sha1.Sum([]byte(item.Link))
 		hashBase64 := base64.StdEncoding.EncodeToString(hash[:])
@@ -50,7 +50,6 @@ func ingestFromUrlWriteToDB(db *gorm.DB, u string, abbr string) {
 			return
 		}
 	}
-	return
 }
 
 // periodicUpdates waits for a tick to be transmitted from a time.Ticker and then triggers an update of the feeds.
@@ -58,13 +57,12 @@ func ingestFromUrlWriteToDB(db *gorm.DB, u string, abbr string) {
 func periodicUpdates(t *time.Ticker, q chan int) {
 	for {
 		select {
-			case <- t.C:
-				log.Print("Periodic feed update triggered.")
-				ingestFromDB(db)
-			case <- q:
-				t.Stop()
-				return
+		case <-t.C:
+			log.Print("Periodic feed update triggered.")
+			ingestFromDB(db)
+		case <-q:
+			t.Stop()
+			return
 		}
 	}
 }
-

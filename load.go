@@ -26,7 +26,7 @@ func loadItems(db *gorm.DB, resultSlice *[]HeadlinesItem, filter string, limit i
 	// I don't quite understand why RowsAffected is sometimes 1 and sometimes 0, but both return empty result slices, so catch it as an error
 	// this was what caused the panic later (calling .Format on a nil result)
 	if result.RowsAffected <= 1 {
-		return errors.New("No headlines found.")
+		return errors.New("no headlines found")
 	}
 
 	// shorten slice to number of items in the results
