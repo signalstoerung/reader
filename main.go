@@ -17,8 +17,6 @@ package main
 
 import (
 	"errors"
-	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"os"
@@ -149,41 +147,12 @@ func proxyHandler(w http.ResponseWriter, r *http.Request) {
 
 	path = expandUrlRecursive(path)
 
-	log.Printf("/proxy/ called with path %v", path)
-	// log.Printf("Incoming headers: %v", r.Header)
+	// strip URL parameters
+	pathStripped, _, _ := strings.Cut(path, "?")
 
-	client := http.Client{}
+	archivePath := "https://archive.is/newest/" + pathStripped
 
-	req, err := http.NewRequest("GET", path, nil)
-	if err != nil {
-		log.Print(err)
-		http.Error(w, "Could not create request", http.StatusInternalServerError)
-	}
-	for key, val := range r.Header {
-		if key == "Cookie" {
-			continue
-		}
-		if key == "Accept-Encoding" {
-			continue
-		}
-		req.Header.Set(key, val[0])
-	}
-	resp, err := client.Do(req)
-
-	if err != nil {
-		log.Print(err)
-		http.Error(w, "Error fetching request", http.StatusInternalServerError)
-	}
-
-	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Print(err)
-		http.Error(w, "Error reading response body", http.StatusInternalServerError)
-	}
-
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	fmt.Fprint(w, string(body))
+	http.Redirect(w, r, archivePath, http.StatusMovedPermanently)
 }
 
 func apiHandler(w http.ResponseWriter, r *http.Request) {
