@@ -2,3 +2,5 @@
 .DS_Store
 config.yaml
 githubtoken
+browserconfig.xml
+reader
