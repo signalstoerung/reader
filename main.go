@@ -147,8 +147,10 @@ func proxyHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	path = "https://" + path
 
+	path = expandUrlRecursive(path)
+
 	log.Printf("/proxy/ called with path %v", path)
-	log.Printf("Incoming headers: %v", r.Header)
+	// log.Printf("Incoming headers: %v", r.Header)
 
 	client := http.Client{}
 
