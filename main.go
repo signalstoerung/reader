@@ -17,9 +17,12 @@ package main
 
 import (
 	"errors"
+	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -136,6 +139,51 @@ func initializeDB(db *gorm.DB) {
 
 /* Request handler functions */
 
+func proxyHandler(w http.ResponseWriter, r *http.Request) {
+	_, path, found := strings.Cut(r.URL.Path, "/proxy/https:/")
+	if !found {
+		http.Error(w, "Invalid path", http.StatusBadRequest)
+		return
+	}
+	path = "https://" + path
+
+	log.Printf("/proxy/ called with path %v", path)
+	log.Printf("Incoming headers: %v", r.Header)
+
+	client := http.Client{}
+
+	req, err := http.NewRequest("GET", path, nil)
+	if err != nil {
+		log.Print(err)
+		http.Error(w, "Could not create request", http.StatusInternalServerError)
+	}
+	for key, val := range r.Header {
+		if key == "Cookie" {
+			continue
+		}
+		if key == "Accept-Encoding" {
+			continue
+		}
+		req.Header.Set(key, val[0])
+	}
+	resp, err := client.Do(req)
+
+	if err != nil {
+		log.Print(err)
+		http.Error(w, "Error fetching request", http.StatusInternalServerError)
+	}
+
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Print(err)
+		http.Error(w, "Error reading response body", http.StatusInternalServerError)
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	fmt.Fprint(w, string(body))
+}
+
 func apiHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Must use POST", http.StatusBadRequest)
@@ -212,6 +260,7 @@ func main() {
 
 	// register handlers
 	http.HandleFunc("/api/", apiHandler)
+	http.HandleFunc("/proxy/", proxyHandler)
 	staticFileHandler := http.FileServer(http.Dir("./www/static"))
 	http.Handle("/", staticFileHandler)
 
