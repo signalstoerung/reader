@@ -1,10 +1,12 @@
 package main
 
 type HeadlinesItem struct {
-	Link      string
-	Title     string
-	Timestamp string
-	FeedAbbr  string
+	Link        string
+	Title       string
+	Timestamp   string
+	FeedAbbr    string
+	Description string
+	Content     string
 }
 
 type HeadlinesPage struct {

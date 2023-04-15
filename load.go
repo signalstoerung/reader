@@ -46,6 +46,8 @@ func loadItems(db *gorm.DB, resultSlice *[]HeadlinesItem, filter string, limit i
 		(*resultSlice)[i].Title = item.Title
 		(*resultSlice)[i].Timestamp = item.PublishedParsed.In(globalConfig.localTZ).Format("02 Jan 15:04")
 		(*resultSlice)[i].FeedAbbr = item.FeedAbbr
+		(*resultSlice)[i].Content = item.Content
+		(*resultSlice)[i].Description = item.Description
 	}
 	return nil
 }
