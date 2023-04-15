@@ -45,6 +45,8 @@ type Item struct {
 	Title           string
 	FeedAbbr        string
 	Link            string
+	Description     string
+	Content         string
 	Hash            string `gorm:"uniqueIndex"`
 	PublishedParsed *time.Time
 }
@@ -111,14 +113,14 @@ func loadConfig() error {
 func openDBConnection() error {
 	var err error
 	db, err = gorm.Open(sqlite.Open("db/reader.db"), &gorm.Config{})
+	db.AutoMigrate(&Feed{})
+	db.AutoMigrate(&Item{})
+	db.AutoMigrate(&User{})
 	return err
 }
 
 // initializeDB is called only if the database does not exist. It creates the necessary tables and seeds the DB with a few feeds.
 func initializeDB(db *gorm.DB) {
-	db.AutoMigrate(&Feed{})
-	db.AutoMigrate(&Item{})
-	db.AutoMigrate(&User{})
 	db.Create(&Feed{Name: "NYT Wire", Abbr: "NYT", Url: "https://content.api.nytimes.com/svc/news/v3/all/recent.rss"})
 	db.Create(&Feed{Name: "NOS Nieuws Algemeen", Abbr: "NOS", Url: "https://feeds.nos.nl/nosnieuwsalgemeen"})
 	db.Create(&Feed{Name: "Tagesschau", Abbr: "ARD", Url: "https://www.tagesschau.de/xml/atom/"})
