@@ -60,6 +60,7 @@ func periodicUpdates(t *time.Ticker, q chan int) {
 		case <-t.C:
 			log.Print("Periodic feed update triggered.")
 			ingestFromDB(db)
+			triggerScoring()
 		case <-q:
 			t.Stop()
 			return

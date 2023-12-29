@@ -5,9 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"net/http"
 	"reflect"
 	"strconv"
+	"time"
 
 	"github.com/signalstoerung/reader/internal/openai"
 	"golang.org/x/exp/slices"
@@ -120,11 +120,68 @@ func ScoreHeadlines() error {
 	return nil
 }
 
-func openAITestHandler(w http.ResponseWriter, r *http.Request) {
+// func openAITestHandler(w http.ResponseWriter, r *http.Request) {
+// 	err := ScoreHeadlines()
+// 	if err != nil {
+// 		http.Error(w, err.Error(), http.StatusInternalServerError)
+// 		return
+// 	}
+// 	fmt.Fprintf(w, "Success!\n")
+// }
+
+// Launch this as a go routine
+func goScore(cancel chan struct{}) {
 	err := ScoreHeadlines()
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		log.Printf("An error occurred running ScoreHeadlines: %v", err)
+		log.Printf("Sending message to cancel ticker")
+		cancel <- struct{}{}
 	}
-	fmt.Fprintf(w, "Success!\n")
+}
+
+func scheduleScoring(ticker *time.Ticker, cancel chan struct{}) {
+	log.Println("Scheduling loop started")
+	defer log.Println("Scheduling loop stopped")
+
+Outerloop:
+	for {
+		first, err := firstUnscoredHeadline()
+		if err != nil {
+			log.Printf("Error in scoring scheduler: %v", err)
+			ticker.Stop()
+			close(cancel)
+			return
+		}
+		if first.PublishedParsed.Before(time.Now().Add(-1 * time.Hour)) {
+			log.Printf("No recent headlines to score.")
+			ticker.Stop()
+			close(cancel)
+			return
+		}
+		select {
+		case <-cancel:
+			ticker.Stop()
+			log.Println("Received cancel signal for HeadlineScoring ticker.")
+			break Outerloop
+		case <-ticker.C:
+			goScore(cancel)
+		}
+	}
+}
+
+func firstUnscoredHeadline() (Item, error) {
+	var headlines []Item
+	result := db.Raw("SELECT * from items WHERE breaking_news_score = 0 OR breaking_news_score IS NULL ORDER BY published_parsed DESC LIMIT 1").Scan(&headlines)
+	if result.Error != nil {
+		return Item{}, result.Error
+	}
+	return headlines[0], nil
+}
+
+// this should be called after each DB update
+func triggerScoring() {
+	log.Println("Scoring of headlines triggered")
+	tickerScoring := time.NewTicker(1 * time.Minute)
+	cancel := make(chan (struct{}))
+	go scheduleScoring(tickerScoring, cancel)
 }

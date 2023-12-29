@@ -239,18 +239,24 @@ func main() {
 	// register handlers
 	http.HandleFunc("/api/", apiHandler)
 	http.HandleFunc("/proxy/", proxyHandler)
-	http.HandleFunc("/openaitest/", openAITestHandler)
+	// http.HandleFunc("/openaitest/", openAITestHandler)
 	staticFileHandler := http.FileServer(http.Dir("./www/static"))
 	http.Handle("/", staticFileHandler)
 
 	// start a ticker for periodic refresh using the const updateFrequency
-	ticker := time.NewTicker(time.Duration(globalConfig.UpdateFrequency) * time.Minute)
+	tickerUpdating := time.NewTicker(time.Duration(globalConfig.UpdateFrequency) * time.Minute)
 	quit := make(chan int)
 	defer close(quit)
 	log.Printf("Starting ticker for periodic update (%v minutes).", globalConfig.UpdateFrequency)
-	go periodicUpdates(ticker, quit)
+	go periodicUpdates(tickerUpdating, quit)
+
+	// FOR DEBUGGING/MONITORING: TRIGGER UPDATE IMMEDIATELY
+	ingestFromDB(db)
+	triggerScoring()
 
 	// serve web app
 	log.Print("Starting to serve.")
-	http.ListenAndServe(":8000", nil)
+	err := http.ListenAndServe(":8000", nil)
+	log.Println(err)
+	tickerUpdating.Stop()
 }
