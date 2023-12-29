@@ -250,10 +250,6 @@ func main() {
 	log.Printf("Starting ticker for periodic update (%v minutes).", globalConfig.UpdateFrequency)
 	go periodicUpdates(tickerUpdating, quit)
 
-	// FOR DEBUGGING/MONITORING: TRIGGER UPDATE IMMEDIATELY
-	ingestFromDB(db)
-	triggerScoring()
-
 	// serve web app
 	log.Print("Starting to serve.")
 	err := http.ListenAndServe(":8000", nil)
