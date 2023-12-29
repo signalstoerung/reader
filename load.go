@@ -48,6 +48,9 @@ func loadItems(db *gorm.DB, resultSlice *[]HeadlinesItem, filter string, limit i
 		(*resultSlice)[i].FeedAbbr = item.FeedAbbr
 		(*resultSlice)[i].Content = item.Content
 		(*resultSlice)[i].Description = item.Description
+		(*resultSlice)[i].BreakingNewsScore = item.BreakingNewsScore
+		(*resultSlice)[i].BreakingNewsReason = item.BreakingNewsReason
+
 	}
 	return nil
 }

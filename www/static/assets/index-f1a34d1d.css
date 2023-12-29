@@ -1,0 +1,1 @@
+.breaking80{color:#000;background-color:#dd4e4e33}.breaking90{color:#000;background-color:#dd4e4e80}.breaking95{color:#dd4e4ee6}.dot{width:1em;height:1em;margin-top:3px;margin-right:5px;background-color:#dd4e4ee6;border-radius:50%;animation:pulse 1s infinite;float:left}@keyframes pulse{0%{transform:scale(.8)}50%{transform:scale(1.2)}to{transform:scale(.8)}}
