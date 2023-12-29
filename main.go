@@ -24,6 +24,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/signalstoerung/reader/internal/openai"
 	"gopkg.in/yaml.v3"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -42,13 +43,15 @@ type Feed struct {
 // The Item struct stores an item from an RSS feed.
 type Item struct {
 	gorm.Model
-	Title           string
-	FeedAbbr        string
-	Link            string
-	Description     string
-	Content         string
-	Hash            string `gorm:"uniqueIndex"`
-	PublishedParsed *time.Time
+	Title              string
+	FeedAbbr           string
+	Link               string
+	Description        string
+	Content            string
+	Hash               string `gorm:"uniqueIndex"`
+	BreakingNewsScore  int
+	BreakingNewsReason string
+	PublishedParsed    *time.Time
 }
 
 // The User struct stores a user (with a session UUID)
@@ -65,6 +68,7 @@ type Config struct {
 	Secret            string `yaml:"secret"`
 	ResultsPerPage    int    `yaml:"resultsPerPage"`
 	DeeplApiKey       string `yaml:"deeplApiKey"`
+	OpenAIToken       string `yaml:"openAiToken"`
 	localTZ           *time.Location
 }
 
@@ -104,6 +108,7 @@ func loadConfig() error {
 	}
 	offset := globalConfig.TimeZoneGMTOffset * 3600
 	globalConfig.localTZ = time.FixedZone("Local", offset)
+	openai.Stats.ApiKey = globalConfig.OpenAIToken
 	return nil
 }
 
@@ -234,6 +239,7 @@ func main() {
 	// register handlers
 	http.HandleFunc("/api/", apiHandler)
 	http.HandleFunc("/proxy/", proxyHandler)
+	http.HandleFunc("/openaitest/", openAITestHandler)
 	staticFileHandler := http.FileServer(http.Dir("./www/static"))
 	http.Handle("/", staticFileHandler)
 
