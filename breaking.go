@@ -39,8 +39,8 @@ func ScoreHeadlines() error {
 		compiledHeadlines += fmt.Sprintf("- %s (ID: %d)\n", headline.Title, headline.ID)
 	}
 
-	log.Println("Compiled headlines:")
-	log.Println(compiledHeadlines)
+	//	log.Println("Compiled headlines:")
+	//	log.Println(compiledHeadlines)
 	//log.Println(headlines)
 
 	scored, err := openai.ScoreHeadlines(compiledHeadlines)
@@ -48,7 +48,7 @@ func ScoreHeadlines() error {
 		return err
 	}
 
-	log.Println(scored)
+	//	log.Println(scored)
 
 	var jsonDecoded map[string]interface{}
 	if err := json.Unmarshal([]byte(scored), &jsonDecoded); err != nil {
@@ -88,7 +88,7 @@ func ScoreHeadlines() error {
 			if !ok {
 				return fmt.Errorf("expected map[string]interface, got %v", reflect.TypeOf(news[headlineIdx]))
 			}
-			log.Printf("Found matching headline ID:\n")
+			log.Printf("Headline Scored:\n")
 			log.Printf("headline.ID = %d, jsonDecoded.ID = %v", headline.ID, elem["ID"])
 			log.Printf("headline.Title = '%s', json headline = %s", headline.Title, elem["headline"])
 			score, ok := elem["confidence"].(float64)
@@ -101,6 +101,7 @@ func ScoreHeadlines() error {
 				return errors.New("json 'reason' not string")
 			}
 			headline.BreakingNewsReason = reason
+			log.Printf("Score: %d (%s)", int(score), reason)
 			result := db.Save(&headline)
 			if result.Error != nil {
 				return result.Error
@@ -108,7 +109,7 @@ func ScoreHeadlines() error {
 		} else {
 			// Index not found
 			// we still set the breaking news score to something other than 0, so that this headline is not reviewed again and again
-			log.Printf("This headline was not selected: %s", headline.Title)
+			//			log.Printf("This headline was not selected: %s", headline.Title)
 			headline.BreakingNewsScore = -1
 			headline.BreakingNewsReason = "N/A"
 			result := db.Save(&headline)
