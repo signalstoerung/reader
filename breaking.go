@@ -153,7 +153,7 @@ Outerloop:
 			return
 		}
 		if first.PublishedParsed.Before(time.Now().Add(-1 * time.Hour)) {
-			log.Printf("No recent headlines to score.")
+			log.Printf("No recent headlines to score (found date: %v).", first.PublishedParsed.Format("Jan 2 - 15:04"))
 			ticker.Stop()
 			close(cancel)
 			return
@@ -171,11 +171,16 @@ Outerloop:
 
 func firstUnscoredHeadline() (Item, error) {
 	var headlines []Item
-	result := db.Raw("SELECT * from items WHERE breaking_news_score = 0 OR breaking_news_score IS NULL ORDER BY published_parsed DESC LIMIT 1").Scan(&headlines)
+	result := db.Raw("SELECT * from items WHERE breaking_news_score = 0 OR breaking_news_score IS NULL ORDER BY published_parsed DESC LIMIT 20").Scan(&headlines)
 	if result.Error != nil {
 		return Item{}, result.Error
 	}
-	return headlines[0], nil
+	if result.RowsAffected < 15 {
+		log.Printf("Only found %v headlines to score, aborting", result.RowsAffected)
+		return Item{}, fmt.Errorf("only %v headlines found, aborting", result.RowsAffected)
+	}
+	// returning last element - this ensures that at least 20 headlines are collected before scoring is triggered.
+	return headlines[len(headlines)-1], nil
 }
 
 // this should be called after each DB update
