@@ -153,7 +153,7 @@ Outerloop:
 			close(cancel)
 			return
 		}
-		if first.PublishedParsed.Before(time.Now().Add(-1 * time.Hour)) {
+		if first.PublishedParsed.Before(time.Now().Add(-5 * time.Hour)) {
 			log.Printf("No recent headlines to score (found date: %v).", first.PublishedParsed.Format("Jan 2 - 15:04"))
 			ticker.Stop()
 			close(cancel)
