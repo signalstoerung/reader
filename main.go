@@ -17,6 +17,7 @@ package main
 
 import (
 	"errors"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -216,6 +217,14 @@ func main() {
 		panic("Couldn't load configuration file.")
 	}
 
+	newscontextFile, err := os.Open("./db/newscontext.txt")
+	if err == nil {
+		context, err := io.ReadAll(newscontextFile)
+		if err == nil {
+			openai.NewsContext = string(context)
+		}
+	}
+
 	//	recreate reader.db if it doesn't exist
 	if _, err := os.Stat("./db/reader.db"); err != nil {
 		if errors.Is(err, os.ErrNotExist) {
@@ -250,9 +259,13 @@ func main() {
 	log.Printf("Starting ticker for periodic update (%v minutes).", globalConfig.UpdateFrequency)
 	go periodicUpdates(tickerUpdating, quit)
 
+	// FOR DEBUG - RUN UPDATE IMMEDIATELY
+	ingestFromDB(db)
+	triggerScoring()
+
 	// serve web app
 	log.Print("Starting to serve.")
-	err := http.ListenAndServe(":8000", nil)
+	err = http.ListenAndServe(":8000", nil)
 	log.Println(err)
 	tickerUpdating.Stop()
 }

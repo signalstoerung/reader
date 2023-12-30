@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -18,7 +19,7 @@ const (
 	ModelGPT4Latest        = "gpt-4-1106-preview"
 	ModelGPT4Standard      = "gpt-4"
 	ResponseFormatJson     = "json_object"
-	NewsEditorPrompt       = "The user will provide a list of headlines. You have the role of a breaking news editor. Review headlines and decide if they are highly newsworthy and should be sent via a push notification to a global audience. The bar is high. Prioritise things happening now, today. Consider only hard news. Ignore vague headlines, news analysis and opinion pieces. Be extremely critical and look for global relevance and high impact. For headlines that qualify, return a JSON object with a `news` property, which is array of objects that have an `ID` and `headline` field (both copied from the input), a `confidence` field (0-100) and a `reason` field (concise, in a few words)."
+	NewsEditorPrompt       = "The user will provide a list of headlines. You have the role of a breaking news editor. Review headlines and decide if they are highly newsworthy and should be sent via a push notification to a global audience. The bar is high. Consider only hard news. Ignore vague headlines, news analysis and opinion pieces. Be extremely critical and look for global relevance and high impact. For headlines that qualify, return a JSON object with a `news` property, which is array of objects that have an `ID` and `headline` field (both copied from the input), a `confidence` field (0-100) and a `reason` field (concise, in a few words)."
 )
 
 type Role string
@@ -53,6 +54,7 @@ func (s *OpenAIApiStats) LogCostAndTokens(tokens int, cost float64) {
 
 var Stats OpenAIApiStats
 var db *gorm.DB
+var NewsContext string
 
 type Message struct {
 	Name    string `json:"name,omitempty"`
@@ -156,7 +158,12 @@ func chatCompletion(request Request) (Completion, error) {
 
 // this should return a string of valid JSON
 func ScoreHeadlines(text string) (string, error) {
-
+	context := fmt.Sprintf("\nContext: \nToday is %v.", time.Now().Format("Jan 2, 2005"))
+	if NewsContext != "" {
+		context += " Long-running stories in the media currently include:\n"
+		context += NewsContext
+		log.Printf("Using news context: %v", context)
+	}
 	request := Request{
 		Model:          ModelGPT3Latest,
 		MaxTokens:      1000,
@@ -164,7 +171,7 @@ func ScoreHeadlines(text string) (string, error) {
 		Messages: []Message{
 			{
 				Role:    RoleSystem,
-				Content: NewsEditorPrompt,
+				Content: NewsEditorPrompt + context,
 			},
 			{
 				Role:    RoleUser,
