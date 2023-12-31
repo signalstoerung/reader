@@ -20,6 +20,7 @@ const (
 	ModelGPT4Standard      = "gpt-4"
 	ResponseFormatJson     = "json_object"
 	NewsEditorPrompt       = "The user will provide a list of headlines. You have the role of a breaking news editor. Review headlines and decide if they are highly newsworthy and should be sent via a push notification to a global audience. The bar is high. Consider only hard news. Ignore vague headlines, news analysis and opinion pieces. Be extremely critical and look for global relevance and high impact. For headlines that qualify, return a JSON object with a `news` property, which is array of objects that have an `ID` and `headline` field (both copied from the input), a `confidence` field (0-100) and a `reason` field (concise, in a few words)."
+	FinishReasonMaxLength  = "length"
 )
 
 type Role string
@@ -145,6 +146,7 @@ func chatCompletion(request Request) (Completion, error) {
 	if resp.StatusCode != http.StatusOK {
 		return completion, fmt.Errorf("API request failed with status code %d: %s", resp.StatusCode, resp.Status)
 	}
+
 	cost, err := completion.Cost()
 	if err != nil {
 		log.Printf("Completion generated, %v tokens (%v)", completion.Usage.TotalTokens, err)
@@ -166,7 +168,7 @@ func ScoreHeadlines(text string) (string, error) {
 	}
 	request := Request{
 		Model:          ModelGPT3Latest,
-		MaxTokens:      1000,
+		MaxTokens:      1200,
 		ResponseFormat: ResponseFormat{Type: ResponseFormatJson},
 		Messages: []Message{
 			{
@@ -185,5 +187,8 @@ func ScoreHeadlines(text string) (string, error) {
 		return "", err
 	}
 	choice := completion.Choices[0]
+	if choice.FinishReason == FinishReasonMaxLength {
+		log.Printf("WARNING: Chat completion exhausted maximum token length: %v", completion.Usage.TotalTokens)
+	}
 	return choice.Message.Content, nil
 }
