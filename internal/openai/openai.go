@@ -160,7 +160,7 @@ func chatCompletion(request Request) (Completion, error) {
 
 // this should return a string of valid JSON
 func ScoreHeadlines(text string) (string, error) {
-	context := fmt.Sprintf("\nContext: \nToday is %v.", time.Now().Format("Jan 2, 2005"))
+	context := fmt.Sprintf("\nContext: \nToday is %v.", time.Now().Format("Jan 2, 2006"))
 	if NewsContext != "" {
 		context += " Long-running stories in the media currently include:\n"
 		context += NewsContext
