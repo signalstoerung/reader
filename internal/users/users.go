@@ -15,7 +15,8 @@ type User struct {
 }
 
 type Configuration struct {
-	DB *gorm.DB
+	DB     *gorm.DB
+	Secret []byte
 }
 
 var (

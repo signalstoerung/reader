@@ -234,7 +234,8 @@ func main() {
 	http.HandleFunc("/api/", apiHandler)
 	http.HandleFunc("/proxy/", proxyHandler)
 	if debug {
-		http.HandleFunc("/test/", breakingTestHandler)
+		http.HandleFunc("/testauth/", users.SessionMiddleware("/testlogin/", loggedInHandler))
+		http.HandleFunc("/testlogin/", users.LoginMiddleware("/testlogin/", loginHandler))
 	}
 	staticFileHandler := http.FileServer(http.Dir("./www/static"))
 	http.Handle("/", staticFileHandler)
@@ -245,14 +246,6 @@ func main() {
 	defer close(quit)
 	log.Printf("Starting ticker for periodic update (%v minutes).", globalConfig.UpdateFrequency)
 	go periodicUpdates(tickerUpdating, quit)
-
-	// FOR DEBUG - RUN UPDATE IMMEDIATELY
-	if debug {
-		feeds.UpdateFeeds()
-		if aiActive {
-			triggerScoring()
-		}
-	}
 
 	// serve web app
 	log.Print("Starting to serve.")
