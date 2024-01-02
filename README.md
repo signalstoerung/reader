@@ -45,7 +45,7 @@ RequiredBy=network.target
 
 system.d should pick it up from there.
 
-> [!WARNING] Important
+> [!WARNING]
 > When running `start/stop/restart/enable` etc., you need to use `systemctl --user`. Without the `--user` option, systemctl will not find the service file.
 
 
