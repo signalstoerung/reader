@@ -17,6 +17,7 @@ package main
 
 import (
 	"errors"
+	"flag"
 	"io"
 	"log"
 	"net/http"
@@ -70,6 +71,7 @@ type Config struct {
 	ResultsPerPage    int    `yaml:"resultsPerPage"`
 	DeeplApiKey       string `yaml:"deeplApiKey"`
 	OpenAIToken       string `yaml:"openAiToken"`
+	Debug             bool
 	localTZ           *time.Location
 }
 
@@ -95,8 +97,8 @@ var globalConfig Config
 
 /* Config */
 
-func loadConfig() error {
-	f, err := os.Open("db/config.yaml")
+func loadConfig(path string) error {
+	f, err := os.Open(path)
 	if err != nil {
 		return err
 	}
@@ -116,9 +118,9 @@ func loadConfig() error {
 /* DB functions */
 
 // openDBConnection opens the database connection (using SQLite)
-func openDBConnection() error {
+func openDBConnection(path string) error {
 	var err error
-	db, err = gorm.Open(sqlite.Open("db/reader.db"), &gorm.Config{})
+	db, err = gorm.Open(sqlite.Open(path), &gorm.Config{})
 	db.AutoMigrate(&Feed{})
 	db.AutoMigrate(&Item{})
 	db.AutoMigrate(&User{})
@@ -211,13 +213,26 @@ func apiHandler(w http.ResponseWriter, r *http.Request) {
 /* MAIN */
 
 func main() {
+	var debug bool
+	var newscontextFilePath string
+	var configFilePath string
+	var dbFilePath string
+
+	flag.BoolVar(&debug, "debug", false, "Activate debug options and logging")
+	flag.StringVar(&newscontextFilePath, "context", "./db/newscontext.txt", "File path to a text file describing the news context")
+	flag.StringVar(&configFilePath, "config", "./db/config.yaml", "File path to a yaml config file")
+	flag.StringVar(&dbFilePath, "db", "./db/reader.db", "File path to sqlite database")
+	flag.Parse()
 	// load config
-	if err := loadConfig(); err != nil {
+	if err := loadConfig(configFilePath); err != nil {
 		log.Printf("Couldn't load configuation (%v).", err)
 		panic("Couldn't load configuration file.")
 	}
+	// set global Debug option based on command line flag
+	globalConfig.Debug = debug
+	openai.Debug = debug
 
-	newscontextFile, err := os.Open("./db/newscontext.txt")
+	newscontextFile, err := os.Open(newscontextFilePath)
 	if err == nil {
 		context, err := io.ReadAll(newscontextFile)
 		if err == nil {
@@ -226,10 +241,10 @@ func main() {
 	}
 
 	//	recreate reader.db if it doesn't exist
-	if _, err := os.Stat("./db/reader.db"); err != nil {
+	if _, err := os.Stat(dbFilePath); err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			log.Print("reader.db doesn't exist, recreating...'")
-			if err := openDBConnection(); err != nil {
+			log.Printf("%v doesn't exist, recreating...", dbFilePath)
+			if err := openDBConnection(dbFilePath); err != nil {
 				log.Printf("encountered an error: %v", err)
 				os.Exit(1)
 			}
@@ -239,7 +254,7 @@ func main() {
 			os.Exit(1)
 		}
 	} else {
-		if err := openDBConnection(); err != nil {
+		if err := openDBConnection(dbFilePath); err != nil {
 			log.Printf("encountered an error: %v", err)
 			os.Exit(1)
 		}
@@ -248,7 +263,9 @@ func main() {
 	// register handlers
 	http.HandleFunc("/api/", apiHandler)
 	http.HandleFunc("/proxy/", proxyHandler)
-	// http.HandleFunc("/openaitest/", openAITestHandler)
+	if debug {
+		http.HandleFunc("/test/", breakingTestHandler)
+	}
 	staticFileHandler := http.FileServer(http.Dir("./www/static"))
 	http.Handle("/", staticFileHandler)
 
@@ -260,8 +277,10 @@ func main() {
 	go periodicUpdates(tickerUpdating, quit)
 
 	// FOR DEBUG - RUN UPDATE IMMEDIATELY
-	ingestFromDB(db)
-	triggerScoring()
+	if debug {
+		ingestFromDB(db)
+		triggerScoring()
+	}
 
 	// serve web app
 	log.Print("Starting to serve.")

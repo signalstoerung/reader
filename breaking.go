@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net/http"
 	"reflect"
 	"strconv"
 	"time"
@@ -42,8 +43,15 @@ func ScoreHeadlines() error {
 	//	log.Println("Compiled headlines:")
 	//	log.Println(compiledHeadlines)
 	//log.Println(headlines)
-
-	scored, err := openai.ScoreHeadlines(compiledHeadlines)
+	recent, ok := recentHeadlines()
+	if !ok {
+		log.Printf("Error retrieving recent headlines.")
+		recent = []string{}
+	}
+	if globalConfig.Debug {
+		log.Printf("ScoreHeadlines() - Recent headlines: %v", recent)
+	}
+	scored, err := openai.ScoreHeadlines(compiledHeadlines, recent)
 	if err != nil {
 		return err
 	}
@@ -184,10 +192,34 @@ func firstUnscoredHeadline() (Item, error) {
 	return headlines[len(headlines)-1], nil
 }
 
+func recentHeadlines() ([]string, bool) {
+	var alerts []string
+	result := db.Raw("select title from items where breaking_news_score > 89 order by published_parsed desc limit 10").Scan(&alerts)
+	if result.Error != nil {
+		log.Printf("Error retrieving alerts: %v", result.Error)
+		return alerts, false
+	}
+	if result.RowsAffected <= 1 {
+		log.Printf("No headlines found: %v", result.RowsAffected)
+		return alerts, false
+	}
+	return alerts, true
+}
+
 // this should be called after each DB update
 func triggerScoring() {
 	log.Println("Scoring of headlines triggered")
 	tickerScoring := time.NewTicker(1 * time.Minute)
 	cancel := make(chan (struct{}))
 	go scheduleScoring(tickerScoring, cancel)
+}
+
+func breakingTestHandler(w http.ResponseWriter, r *http.Request) {
+	recent, ok := recentHeadlines()
+	if ok {
+		fmt.Fprintln(w, "Recent headlines:")
+		for _, hl := range recent {
+			fmt.Fprintf(w, "- %s\n", hl)
+		}
+	}
 }

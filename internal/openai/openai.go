@@ -56,6 +56,7 @@ func (s *OpenAIApiStats) LogCostAndTokens(tokens int, cost float64) {
 var Stats OpenAIApiStats
 var db *gorm.DB
 var NewsContext string
+var Debug bool
 
 type Message struct {
 	Name    string `json:"name,omitempty"`
@@ -159,11 +160,20 @@ func chatCompletion(request Request) (Completion, error) {
 }
 
 // this should return a string of valid JSON
-func ScoreHeadlines(text string) (string, error) {
+func ScoreHeadlines(text string, recent []string) (string, error) {
 	context := fmt.Sprintf("\nContext: \nToday is %v.", time.Now().Format("Jan 2, 2006"))
+	if Debug {
+		log.Println("Recent headlines: ", recent)
+	}
 	if NewsContext != "" {
 		context += " Long-running stories in the media currently include:\n"
 		context += NewsContext
+		if len(recent) > 0 {
+			context += "\nThe following headlines are from the last hours. Avoid duplication unless there is a significant new development:\n"
+			for _, headline := range recent {
+				context += fmt.Sprintf("- %v\n", headline)
+			}
+		}
 		log.Printf("Using news context: %v", context)
 	}
 	request := Request{
