@@ -54,8 +54,10 @@ system.d should pick it up from there.
 
 For **local testing**, create a directory `./db/` in the work directory (Reader will store the sqlite database there), copy the sample config file into the same directory, rename it `config.yaml` and edit it as appropriate. Then you can run Reader with `go run .` and access it in a browser at `localhost:8000`.
 
-- The first time that Reader runs, it will allow anyone to create an account. Follow the link from the homepage to create an account. Once you've done this, registrations will automatically close and nobody else can create an account. (I'm assuming that this is a single-user instance.)
-- *Troubleshooting:* Account creation is only open when Reader starts up and does not find a database. So if you started Reader and stopped it again without creating an account, registration will be closed when you restart, because Reader will have created the database on the first startup. Solution: database in the `./db/` directory. 
+### Account creation
+
+- The first time that Reader runs, it will allow anyone to create an account. On the homepage, enter a user name and password and click 'register'. Once you've done this, registrations will automatically close and nobody else can create an account. (I'm assuming that this is a single-user instance.)
+- *Troubleshooting:* Account creation is only open when Reader starts up and does not find a database. So if you started Reader and stopped it again without creating an account, registration will be closed when you restart, because Reader will have created the database on the first startup. Solution: set the -register flag to true. 
 
 ## Command-line flags
 
@@ -68,6 +70,8 @@ For **local testing**, create a directory `./db/` in the work directory (Reader 
     	File path to sqlite database (default "./db/reader.db")
   -debug
     	Activate debug options and logging
+  -register
+    	Allow registration once at startup
 ```
 
 ## Reading the news
