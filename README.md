@@ -59,7 +59,7 @@ For **local testing**, create a directory `./db/` in the work directory (Reader 
 
 ## Command-line flags
 
-`
+```
   -config string
     	File path to a yaml config file (default "./db/config.yaml")
   -context string
@@ -68,7 +68,7 @@ For **local testing**, create a directory `./db/` in the work directory (Reader 
     	File path to sqlite database (default "./db/reader.db")
   -debug
     	Activate debug options and logging
-`
+```
 
 ## Reading the news
 
