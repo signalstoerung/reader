@@ -23,45 +23,15 @@ import (
 	"net/http"
 	"os"
 	"strings"
-	"sync"
 	"time"
 
+	"github.com/signalstoerung/reader/internal/feeds"
 	"github.com/signalstoerung/reader/internal/openai"
+	"github.com/signalstoerung/reader/internal/users"
 	"gopkg.in/yaml.v3"
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
 )
 
 /* Types */
-
-// The Feed struct stores information about an RSS feed.
-type Feed struct {
-	gorm.Model
-	Name string
-	Abbr string
-	Url  string
-}
-
-// The Item struct stores an item from an RSS feed.
-type Item struct {
-	gorm.Model
-	Title              string
-	FeedAbbr           string
-	Link               string
-	Description        string
-	Content            string
-	Hash               string `gorm:"uniqueIndex"`
-	BreakingNewsScore  int
-	BreakingNewsReason string
-	PublishedParsed    *time.Time
-}
-
-// The User struct stores a user (with a session UUID)
-type User struct {
-	gorm.Model
-	UserName string
-	Password string
-}
 
 // The Config struct stores global configuration variables, as imported from the config.yaml file.
 type Config struct {
@@ -71,23 +41,12 @@ type Config struct {
 	ResultsPerPage    int    `yaml:"resultsPerPage"`
 	DeeplApiKey       string `yaml:"deeplApiKey"`
 	OpenAIToken       string `yaml:"openAiToken"`
-	Debug             bool
+	Debug             bool   `yaml:"-"`
+	AIActive          bool   `yaml:"-"`
 	localTZ           *time.Location
 }
 
-// UserSessions type, for storing information about logged-in users.
-type UserSessions map[string]User
-
 /* Global variables */
-
-// The global variable db stores a (pool of) database connections. Safe for concurrent use.
-var db *gorm.DB
-
-// The global variable wg is used to synchronise goroutines
-var wg sync.WaitGroup
-
-// store api tokens
-var issuedTokens = make(map[string]string)
 
 // allow registrations or not
 var registrationsOpen bool = false
@@ -119,26 +78,26 @@ func loadConfig(path string) error {
 
 // openDBConnection opens the database connection (using SQLite)
 func openDBConnection(path string) error {
-	var err error
-	db, err = gorm.Open(sqlite.Open(path), &gorm.Config{})
-	db.AutoMigrate(&Feed{})
-	db.AutoMigrate(&Item{})
-	db.AutoMigrate(&User{})
+	err := users.Config.OpenDatabase(path)
+	if err != nil {
+		return err
+	}
+	err = feeds.Config.OpenDatabase(path)
 	return err
 }
 
 // initializeDB is called only if the database does not exist. It creates the necessary tables and seeds the DB with a few feeds.
-func initializeDB(db *gorm.DB) {
-	db.Create(&Feed{Name: "NYT Wire", Abbr: "NYT", Url: "https://content.api.nytimes.com/svc/news/v3/all/recent.rss"})
-	db.Create(&Feed{Name: "NOS Nieuws Algemeen", Abbr: "NOS", Url: "https://feeds.nos.nl/nosnieuwsalgemeen"})
-	db.Create(&Feed{Name: "Tagesschau", Abbr: "ARD", Url: "https://www.tagesschau.de/xml/atom/"})
-	db.Create(&Feed{Name: "CNBC Business", Abbr: "CNBC", Url: "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10001147"})
+func initializeDB() {
+	feeds.CreateFeed(feeds.Feed{Name: "NYT Wire", Abbr: "NYT", Url: "https://content.api.nytimes.com/svc/news/v3/all/recent.rss"})
+	feeds.CreateFeed(feeds.Feed{Name: "NOS Nieuws Algemeen", Abbr: "NOS", Url: "https://feeds.nos.nl/nosnieuwsalgemeen"})
+	feeds.CreateFeed(feeds.Feed{Name: "Tagesschau", Abbr: "ARD", Url: "https://www.tagesschau.de/xml/atom/"})
+	feeds.CreateFeed(feeds.Feed{Name: "CNBC Business", Abbr: "CNBC", Url: "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10001147"})
 
 	// allow new user registrations on initialization
 	registrationsOpen = true
 
 	// load feeds
-	if err := ingestFromDB(db); err != nil {
+	if err := feeds.UpdateFeeds(); err != nil {
 		log.Printf("encountered an error: %v", err)
 		os.Exit(1)
 	}
@@ -217,11 +176,13 @@ func main() {
 	var newscontextFilePath string
 	var configFilePath string
 	var dbFilePath string
+	var aiActive bool
 
 	flag.BoolVar(&debug, "debug", false, "Activate debug options and logging")
 	flag.StringVar(&newscontextFilePath, "context", "./db/newscontext.txt", "File path to a text file describing the news context")
 	flag.StringVar(&configFilePath, "config", "./db/config.yaml", "File path to a yaml config file")
 	flag.StringVar(&dbFilePath, "db", "./db/reader.db", "File path to sqlite database")
+	flag.BoolVar(&aiActive, "ai", true, "AI headline scoring active. Turn off for testing to avoid charges.")
 	flag.Parse()
 	// load config
 	if err := loadConfig(configFilePath); err != nil {
@@ -230,7 +191,14 @@ func main() {
 	}
 	// set global Debug option based on command line flag
 	globalConfig.Debug = debug
+	globalConfig.AIActive = aiActive
 	openai.Debug = debug
+
+	if aiActive {
+		log.Println("AI headline scoring active.")
+	} else {
+		log.Println("AI headline scoring inactive.")
+	}
 
 	newscontextFile, err := os.Open(newscontextFilePath)
 	if err == nil {
@@ -248,7 +216,7 @@ func main() {
 				log.Printf("encountered an error: %v", err)
 				os.Exit(1)
 			}
-			initializeDB(db)
+			initializeDB()
 		} else {
 			log.Print(err)
 			os.Exit(1)
@@ -278,8 +246,10 @@ func main() {
 
 	// FOR DEBUG - RUN UPDATE IMMEDIATELY
 	if debug {
-		ingestFromDB(db)
-		triggerScoring()
+		feeds.UpdateFeeds()
+		if aiActive {
+			triggerScoring()
+		}
 	}
 
 	// serve web app

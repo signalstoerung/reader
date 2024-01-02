@@ -1,18 +1,9 @@
 package main
 
-type HeadlinesItem struct {
-	Link               string
-	Title              string
-	Timestamp          string
-	FeedAbbr           string
-	Description        string
-	Content            string
-	BreakingNewsScore  int
-	BreakingNewsReason string
-}
+import "github.com/signalstoerung/reader/internal/feeds"
 
 type HeadlinesPage struct {
-	Headlines       []HeadlinesItem
+	Headlines       []feeds.Item
 	Page            int
 	HasPreviousPage bool
 	PreviousPage    int

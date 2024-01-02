@@ -10,7 +10,12 @@ import (
 	"strconv"
 
 	"github.com/google/uuid"
+	"github.com/signalstoerung/reader/internal/feeds"
+	"github.com/signalstoerung/reader/internal/users"
 )
+
+// store api tokens
+var issuedTokens = make(map[string]string)
 
 type tokenResponse struct {
 	Token string
@@ -37,15 +42,10 @@ func apiLogin(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Missing user ID or password.", http.StatusBadRequest)
 		return
 	}
-	var maybeUser User
-	result := db.Where(User{UserName: user}).First(&maybeUser)
-	if result.Error != nil {
-		http.Error(w, "Wrong user name or password.", http.StatusBadRequest)
-		return
-	}
-	if err := maybeUser.verifyPassword(passw); err != nil {
-		// wrong password supplied
-		http.Error(w, "Wrong user name or password.", http.StatusBadRequest)
+	err := users.VerifyUser(user, passw)
+	if err != nil {
+		log.Printf("User %v could not be verified - %v", user, err)
+		http.Error(w, "User verification failed", http.StatusBadRequest)
 		return
 	} else {
 		token, ok := issuedTokens[user]
@@ -79,15 +79,9 @@ func apiAddUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Username can only consist of letters.", http.StatusBadRequest)
 		return
 	}
-	newUser := User{UserName: user}
-	err := newUser.setPassword(passw)
+	err := users.CreateUser(user, passw)
 	if err != nil {
-		http.Error(w, "Error creating new user.", http.StatusInternalServerError)
-		return
-	}
-
-	result := db.Create(&newUser)
-	if result.Error != nil {
+		log.Printf("Error creating user: %v", err)
 		http.Error(w, "Error creating new user.", http.StatusInternalServerError)
 		return
 	}
@@ -96,35 +90,33 @@ func apiAddUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func apiFeedList(w http.ResponseWriter) {
-	var feeds []Feed
-	result := db.Find(&feeds)
-	if result.Error != nil {
-		http.Error(w, fmt.Sprintf("Error: %v", result.Error), http.StatusInternalServerError)
+	feeds, err := feeds.AllFeeds()
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error: %v", err), http.StatusInternalServerError)
 		return
 	}
 	encoder := json.NewEncoder(w)
 	encoder.Encode(feeds)
-
 }
 
 func apiDeleteFeed(w http.ResponseWriter, r *http.Request) {
-	var feed Feed
+	var feed feeds.Feed
 	id, err := strconv.Atoi(r.Form.Get("ID"))
 	if err != nil {
 		http.Error(w, "Error - ID not a number", http.StatusBadRequest)
 		return
 	}
 	feed.ID = uint(id)
-	result := db.Delete(&feed)
-	if result.RowsAffected == 0 {
-		http.Error(w, "ID not found", http.StatusBadRequest)
+	err = feeds.DeleteFeed(feed)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error deleting feed: %v", err), http.StatusBadRequest)
 	} else {
 		fmt.Fprintf(w, "Success")
 	}
 }
 
 func apiAddFeed(w http.ResponseWriter, r *http.Request) {
-	var feed Feed
+	var feed feeds.Feed
 	title := r.Form.Get("title")
 	abbr := r.Form.Get("abbr")
 	url, err := url.Parse(r.Form.Get("url"))
@@ -135,9 +127,9 @@ func apiAddFeed(w http.ResponseWriter, r *http.Request) {
 	feed.Name = title
 	feed.Abbr = firstN(abbr, 4)
 	feed.Url = url.String()
-	result := db.Create(&feed)
-	if result.Error != nil {
-		log.Printf("Error writing new feed to database: %v", result.Error)
+	err = feeds.CreateFeed(feed)
+	if err != nil {
+		log.Printf("Error writing new feed to database: %v", err)
 		http.Error(w, "Error writing to db.", http.StatusInternalServerError)
 		return
 	} else {
@@ -167,8 +159,8 @@ func apiHeadlines(w http.ResponseWriter, r *http.Request) {
 
 	offset = (page - 1) * limit
 
-	result := make([]HeadlinesItem, limit)
-	err = loadItems(db, &result, filter, limit, offset)
+	var result []feeds.Item
+	result, err = feeds.Items(filter, limit, offset)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Error loading items: %v", err), http.StatusInternalServerError)
 		return

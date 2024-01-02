@@ -10,80 +10,73 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/signalstoerung/reader/internal/feeds"
 	"github.com/signalstoerung/reader/internal/openai"
 	"golang.org/x/exp/slices"
 )
 
-// scores the 20 most recent headlines for their breaking news value
-func HeadlinesToScore() (string, error) {
-	var headlines []Item
-	compiledHeadlines := ""
-	result := db.Limit(20).Order("published_parsed DESC").Where(&Item{BreakingNewsScore: 0, BreakingNewsReason: ""}).Find(&headlines)
-	if result.Error != nil {
-		return "", result.Error
-	}
-	for _, headline := range headlines {
-		compiledHeadlines += fmt.Sprintf("- %s (ID: %d)\n", headline.Title, headline.ID)
-	}
-
-	return compiledHeadlines, nil
-}
-
 func ScoreHeadlines() error {
-	var headlines []Item
-	compiledHeadlines := ""
-	result := db.Raw("SELECT * from items WHERE breaking_news_score = 0 OR breaking_news_score IS NULL ORDER BY published_parsed DESC LIMIT 20").Scan(&headlines)
-	if result.Error != nil {
-		return result.Error
+	// get a batch of unscored headlines
+	headlines, err := feeds.UnscoredHeadlines()
+	if err != nil {
+		log.Printf("Error retrieving unscored headlines: %v", err)
+		return err
 	}
+	// compile them into one neatly printed string that can be attached to the OpenAI prompt
+	compiledHeadlines := ""
 	for _, headline := range headlines {
 		compiledHeadlines += fmt.Sprintf("- %s (ID: %d)\n", headline.Title, headline.ID)
 	}
 
-	//	log.Println("Compiled headlines:")
-	//	log.Println(compiledHeadlines)
-	//log.Println(headlines)
-	recent, ok := recentHeadlines()
+	// get recent breaking news headlines for context
+	recent, ok := feeds.RecentBreakingNews()
 	if !ok {
 		log.Printf("Error retrieving recent headlines.")
 		recent = []string{}
 	}
-	if globalConfig.Debug {
-		log.Printf("ScoreHeadlines() - Recent headlines: %v", recent)
-	}
+
+	// get AI to score the headlines - returns a JSON string
 	scored, err := openai.ScoreHeadlines(compiledHeadlines, recent)
 	if err != nil {
 		return err
 	}
 
-	//	log.Println(scored)
-
+	// decode JSON string into map[string]interface{}
 	var jsonDecoded map[string]interface{}
 	if err := json.Unmarshal([]byte(scored), &jsonDecoded); err != nil {
 		return err
 	}
-	// log.Printf("Decoded JSON object:\n")
-	// log.Printf("%+v", jsonDecoded)
+
+	// headlines should be an array in the 'news' field
+	// check if the type is as expected
 	news, ok := jsonDecoded["news"].([]interface{})
 	if !ok {
-		return fmt.Errorf("expected []map[string]interface{}, got %v", reflect.TypeOf(jsonDecoded["news"]))
+		return fmt.Errorf("expected []interface{}, got %v", reflect.TypeOf(jsonDecoded["news"]))
 	}
 
+	// Now we iterate over the original headlines ([]Item) and check if we find a match in what we got back from the OpenAI API
 	for _, headline := range headlines {
+		// get index of match
 		headlineIdx := slices.IndexFunc(news, func(elem interface{}) bool {
+			// first we assert that the element of 'news' is a map[string]interface{}, i.e. an unmarshalled JSON object
+			// we reassign it to e so that we get proper compiler type checks
 			e, ok := elem.(map[string]interface{})
 			if ok {
+				// during testing, OpenAI sometimes returned a JSON number (ID: 1), sometimes a string (ID: "1"), so we work with both
 				switch e["ID"].(type) {
 				case float64:
+					// returns true if the ID of elem is the same as headline.ID == we have a match
 					return uint(e["ID"].(float64)) == headline.ID
 				case string:
 					id, err := strconv.Atoi(e["ID"].(string))
 					if err != nil {
 						return false
 					}
+					// same as above, but then after a string->int conversion
 					return uint(id) == headline.ID
 				default:
-					log.Printf("Unexpected type for e[ID]")
+					// log unexpected type
+					log.Printf("Unexpected type for e[ID]: %v", reflect.TypeOf(e["ID"]))
 					return false
 				}
 			} else {
@@ -91,7 +84,9 @@ func ScoreHeadlines() error {
 				return false
 			}
 		})
+		// match: Index is NOT -1
 		if headlineIdx != -1 {
+			// confirm type so that compiler type checks work correctly
 			elem, ok := news[headlineIdx].(map[string]interface{})
 			if !ok {
 				return fmt.Errorf("expected map[string]interface, got %v", reflect.TypeOf(news[headlineIdx]))
@@ -99,9 +94,10 @@ func ScoreHeadlines() error {
 			log.Printf("Headline Scored:\n")
 			log.Printf("headline.ID = %d, jsonDecoded.ID = %v", headline.ID, elem["ID"])
 			log.Printf("headline.Title = '%s', json headline = %s", headline.Title, elem["headline"])
+			// in testing, confidence was reliably a float
 			score, ok := elem["confidence"].(float64)
 			if !ok {
-				return errors.New("json 'confidence' not int")
+				return errors.New("json 'confidence' not float64")
 			}
 			headline.BreakingNewsScore = int(score)
 			reason, ok := elem["reason"].(string)
@@ -110,9 +106,9 @@ func ScoreHeadlines() error {
 			}
 			headline.BreakingNewsReason = reason
 			log.Printf("Score: %d (%s)", int(score), reason)
-			result := db.Save(&headline)
-			if result.Error != nil {
-				return result.Error
+			err := feeds.SaveItem(headline)
+			if err != nil {
+				return err
 			}
 		} else {
 			// Index not found
@@ -120,9 +116,9 @@ func ScoreHeadlines() error {
 			//			log.Printf("This headline was not selected: %s", headline.Title)
 			headline.BreakingNewsScore = -1
 			headline.BreakingNewsReason = "N/A"
-			result := db.Save(&headline)
-			if result.Error != nil {
-				return result.Error
+			err = feeds.SaveItem(headline)
+			if err != nil {
+				return err
 			}
 		}
 	}
@@ -154,7 +150,7 @@ func scheduleScoring(ticker *time.Ticker, cancel chan struct{}) {
 
 Outerloop:
 	for {
-		first, err := firstUnscoredHeadline()
+		first, err := feeds.FirstUnscoredHeadline()
 		if err != nil {
 			log.Printf("Error in scoring scheduler: %v", err)
 			ticker.Stop()
@@ -178,34 +174,6 @@ Outerloop:
 	}
 }
 
-func firstUnscoredHeadline() (Item, error) {
-	var headlines []Item
-	result := db.Raw("SELECT * from items WHERE breaking_news_score = 0 OR breaking_news_score IS NULL ORDER BY published_parsed DESC LIMIT 20").Scan(&headlines)
-	if result.Error != nil {
-		return Item{}, result.Error
-	}
-	if result.RowsAffected < 15 {
-		log.Printf("Only found %v headlines to score, aborting", result.RowsAffected)
-		return Item{}, fmt.Errorf("only %v headlines found, aborting", result.RowsAffected)
-	}
-	// returning last element - this ensures that at least 20 headlines are collected before scoring is triggered.
-	return headlines[len(headlines)-1], nil
-}
-
-func recentHeadlines() ([]string, bool) {
-	var alerts []string
-	result := db.Raw("select title from items where breaking_news_score > 89 order by published_parsed desc limit 10").Scan(&alerts)
-	if result.Error != nil {
-		log.Printf("Error retrieving alerts: %v", result.Error)
-		return alerts, false
-	}
-	if result.RowsAffected <= 1 {
-		log.Printf("No headlines found: %v", result.RowsAffected)
-		return alerts, false
-	}
-	return alerts, true
-}
-
 // this should be called after each DB update
 func triggerScoring() {
 	log.Println("Scoring of headlines triggered")
@@ -215,7 +183,7 @@ func triggerScoring() {
 }
 
 func breakingTestHandler(w http.ResponseWriter, r *http.Request) {
-	recent, ok := recentHeadlines()
+	recent, ok := feeds.RecentBreakingNews()
 	if ok {
 		fmt.Fprintln(w, "Recent headlines:")
 		for _, hl := range recent {
