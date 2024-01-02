@@ -183,6 +183,7 @@ func main() {
 	flag.StringVar(&configFilePath, "config", "./db/config.yaml", "File path to a yaml config file")
 	flag.StringVar(&dbFilePath, "db", "./db/reader.db", "File path to sqlite database")
 	flag.BoolVar(&aiActive, "ai", true, "AI headline scoring active. Turn off for testing to avoid charges.")
+	flag.BoolVar(&registrationsOpen, "register", false, "Allow registration once at startup if true.")
 	flag.Parse()
 	// load config
 	if err := loadConfig(configFilePath); err != nil {
