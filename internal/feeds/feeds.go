@@ -102,10 +102,17 @@ func ingestFromUrlWriteToDB(db *gorm.DB, u string, abbr string) {
 		// It's a unique key, so trying to insert a duplicate will throw an error. Hence we use gorm's "First or create", which is roughly the same as "INSERT IGNORE"
 		hash := sha1.Sum([]byte(item.Link))
 		hashBase64 := base64.StdEncoding.EncodeToString(hash[:])
+		if item.PublishedParsed == nil || item.PublishedParsed.IsZero() {
+			log.Printf("Publish date not parsed for item %v in feed %v.", item.Title, feed.Title)
+			log.Printf("Published: %v, PublishedParsed: %v, Updated: %v, UpdatedParsed: %v", item.Published, item.PublishedParsed, item.Updated, item.UpdatedParsed)
+			log.Println("Aborting parsing of this feed")
+			return
+		}
 		dbItem := Item{Title: item.Title, FeedAbbr: abbr, Link: item.Link, Description: item.Description, Content: item.Content, Hash: hashBase64, PublishedParsed: item.PublishedParsed}
 		result := db.Where(Item{Hash: hashBase64}).FirstOrCreate(&dbItem)
 		if result.Error != nil {
-			return
+			log.Printf("Error updating feed %v: %v", feed.Title, result.Error)
+			continue
 		}
 	}
 }

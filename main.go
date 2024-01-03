@@ -90,7 +90,7 @@ func openDBConnection(path string) error {
 func initializeDB() {
 	feeds.CreateFeed(feeds.Feed{Name: "NYT Wire", Abbr: "NYT", Url: "https://content.api.nytimes.com/svc/news/v3/all/recent.rss"})
 	feeds.CreateFeed(feeds.Feed{Name: "NOS Nieuws Algemeen", Abbr: "NOS", Url: "https://feeds.nos.nl/nosnieuwsalgemeen"})
-	feeds.CreateFeed(feeds.Feed{Name: "Tagesschau", Abbr: "ARD", Url: "https://www.tagesschau.de/xml/atom/"})
+	feeds.CreateFeed(feeds.Feed{Name: "Tagesschau", Abbr: "ARD", Url: "https://www.tagesschau.de/infoservices/alle-meldungen-100~rss2.xml"})
 	feeds.CreateFeed(feeds.Feed{Name: "CNBC Business", Abbr: "CNBC", Url: "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10001147"})
 
 	// allow new user registrations on initialization
@@ -246,6 +246,10 @@ func main() {
 	defer close(quit)
 	log.Printf("Starting ticker for periodic update (%v minutes).", globalConfig.UpdateFrequency)
 	go periodicUpdates(tickerUpdating, quit)
+
+	if debug {
+		feeds.UpdateFeeds()
+	}
 
 	// serve web app
 	log.Print("Starting to serve.")
