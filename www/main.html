@@ -1,0 +1,45 @@
+<main>
+    {{ if .Message}}
+    <div class="warning">{{.Message}}</div>
+    {{ end }}
+    <div id="feedSelector">
+      <select id="feed">
+        <option selected value="">Filter by feed</option>
+        <hr>
+        {{ range .Feeds }}
+        <option>{{.Abbr}}</option>
+        {{end }}
+        <hr>
+        <option value="">Clear filter</option>"
+      </select>
+    </div>
+    <div id="container">
+        {{range .Headlines }}
+            <article>
+                <div class="headline">
+                    {{if eq .AlertClass "alert"}}<div class="alertOn"></div>{{else}}<div class="alertOff"></div>{{end}}
+                    <div class="{{.AlertClass}}"><a onClick="toggle('{{.Id}}')">{{.Timestamp}} {{.FeedAbbr}}-{{.Title}}</a></div>    
+                </div>
+                <aside id="{{.Id}}">{{if ne .BreakingNewsReason ""}}<p class="breakingNewsReason">{{.BreakingNewsReason}}</p>{{end}}
+                    <p>
+                      {{.Preview}}<br>
+                      <a href="{{.Link}}" referrerpolicy="no-referrer" target="_blank">Go to article</a> | <a href="/proxy/{{.Link}}" target="_blank">archive.is link</a> | <a href="/archiveorg/?url={{.Link}}" target="_blank">archive.org link</a>
+                    </p>
+                    <!-- <a href="http://webcache.googleusercontent.com/search?q=cache:{{.Link}}" target="_blank">Google Cache</a> -->
+                </aside>
+            </article>
+        {{ end }}
+        <section class="pagenav">
+            {{if eq .Page 1}}<a class="buttonDisabled">Previous</a>
+            {{else}}<a href="{{.PrevPageLink}}" class="button">Previous</a>{{end}}
+            <span class="pageNumber">Page {{.Page}}</span>
+            {{if eq .NextPageLink ""}}<a class="buttonDisabled">Next</a>
+            {{else}}<a href="{{.NextPageLink}}" class="button">Next</a>{{end}}
+        </section>
+    </div>
+    <nav>
+      <div><a href="#">Home</a></div>
+      <div><a href="#">Feeds</a></div>
+      <div><a href="#">Settings</a></div>
+    </nav>
+  </main>

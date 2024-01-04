@@ -6,17 +6,26 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"regexp"
 	"sync"
 	"time"
+	"unicode/utf8"
 
 	"github.com/mmcdole/gofeed"
+	"golang.org/x/exp/slices"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
+/** GLOBAL VARIABLES **/
+
 var (
+	Config            = Configuration{}
 	ErrNoDBConnection = errors.New("no database connection")
+	ErrNotInCache     = errors.New("no item in cache for this path")
 )
+
+// TYPES
 
 type Configuration struct {
 	DB *gorm.DB
@@ -54,10 +63,6 @@ type Item struct {
 	BreakingNewsReason string
 	PublishedParsed    *time.Time `gorm:"index"`
 }
-
-/** GLOBAL VARIABLES **/
-
-var Config = Configuration{}
 
 /*** UPDATE FEEDS ***/
 
@@ -105,10 +110,29 @@ func ingestFromUrlWriteToDB(db *gorm.DB, u string, abbr string) {
 		if item.PublishedParsed == nil || item.PublishedParsed.IsZero() {
 			log.Printf("Publish date not parsed for item %v in feed %v.", item.Title, feed.Title)
 			log.Printf("Published: %v, PublishedParsed: %v, Updated: %v, UpdatedParsed: %v", item.Published, item.PublishedParsed, item.Updated, item.UpdatedParsed)
-			log.Println("Aborting parsing of this feed")
-			return
+			continue
 		}
-		dbItem := Item{Title: item.Title, FeedAbbr: abbr, Link: item.Link, Description: item.Description, Content: item.Content, Hash: hashBase64, PublishedParsed: item.PublishedParsed}
+
+		// some feeds produce days in the future - check and fix
+		if item.PublishedParsed.After(time.Now()) {
+			log.Printf("Fixing publish date for feed %v. (Published: %v Parsed as: %v) Item: %v", feed.Title, item.Published, item.PublishedParsed, item.Title)
+			now := time.Now()
+			item.PublishedParsed = &now
+		}
+
+		// fix for empty "description" field
+		var preview string
+		if item.Description != "" {
+			preview = stripHTML(item.Description)
+		} else {
+			preview = stripHTML(item.Content)
+		}
+		// shorten description to 450 chars
+		if utf8.RuneCountInString(preview) > 450 {
+			runes := []rune(preview)
+			preview = string(runes[:450]) + "..."
+		}
+		dbItem := Item{Title: item.Title, FeedAbbr: abbr, Link: item.Link, Description: preview, Content: item.Content, Hash: hashBase64, PublishedParsed: item.PublishedParsed}
 		result := db.Where(Item{Hash: hashBase64}).FirstOrCreate(&dbItem)
 		if result.Error != nil {
 			log.Printf("Error updating feed %v: %v", feed.Title, result.Error)
@@ -126,6 +150,17 @@ func AllFeeds() ([]Feed, error) {
 	var feeds []Feed
 	result := Config.DB.Find(&feeds)
 	return feeds, result.Error
+}
+
+func FeedExists(s string) bool {
+	feeds, err := AllFeeds()
+	if err != nil {
+		log.Println(err)
+		return false
+	}
+	return slices.ContainsFunc(feeds, func(elem Feed) bool {
+		return elem.Abbr == s
+	})
 }
 
 func Items(filter string, limit int, offset int) ([]Item, error) {
@@ -235,4 +270,11 @@ func DeleteFeed(f Feed) error {
 	}
 	result := Config.DB.Delete(&f)
 	return result.Error
+}
+
+// HELPERS
+
+func stripHTML(s string) string {
+	re := regexp.MustCompile("<[^>]*>")
+	return re.ReplaceAllString(s, "")
 }
