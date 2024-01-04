@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"reflect"
+	"slices"
 	"strconv"
 	"time"
 
@@ -68,9 +69,12 @@ func loggedInHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func headlinesHandler(w http.ResponseWriter, r *http.Request) {
-	feedlist := getAllFeedsFromCacheOrDB()
+	feedlist := getAllFeedsFromCacheOrDB().([]feeds.Item)
 	feed := r.FormValue("feed")
-	if !feeds.FeedExists(feed) {
+	// check if 'feed' exists, if not, set it to ""
+	if !slices.ContainsFunc(feedlist, func(elem feeds.Item) bool {
+		return elem.FeedAbbr == feed
+	}) {
 		feed = ""
 	}
 	page, err := strconv.Atoi(r.FormValue("page"))
