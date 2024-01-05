@@ -16,7 +16,7 @@
         <div class="feedListNarrow">
             <form method="post" action="{{$url}}">
                 <input type="hidden" name="ID" value="{{.ID}}"><input type="hidden" name="action" value="delete">
-                <input type="submit" value="Delete">
+                <input type="submit" value="Delete" class="button">
             </form>        
         </div>
     </section>
@@ -34,7 +34,7 @@
             </div>
             <div class="feedListNarrow">
                 <input type="hidden" name="action" value="add">
-                <input type="submit" value="Add">
+                <input type="submit" value="Add" class="button">
             </div>        
         </section>
     </form>
@@ -42,5 +42,6 @@
     <nav>
 		<div><a href="/">Home</a></div>
 		<div><a href="/feeds/">Feeds</a></div>
+		<div><a href="/logout/">Logout</a></div>
     </nav>  
 </main>

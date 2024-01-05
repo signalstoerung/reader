@@ -159,8 +159,13 @@ main section.feedList {
   flex-wrap: wrap;
 }
 
-.feedList input {
+input {
   font-size: 12pt;
+  margin-bottom: 5px;
+}
+
+input.button {
+
 }
 
 .feedListNarrow {
@@ -180,7 +185,7 @@ section.pagenav {
     margin-bottom: 0.5em;
 }
 
-.pagenav .buttonDisabled {
+.buttonDisabled {
     min-width: 6em;
     font-size: 12pt;
     background-color: rgb(0 0 0 / 0.5);
@@ -196,11 +201,11 @@ section.pagenav {
     padding:0.5em;
 
 }
-.pagenav .buttonDisabled:hover {
+.buttonDisabled:hover {
     text-decoration: none;
 }
 
-.pagenav .button {
+.button {
     min-width: 6em;
     font-size: 12pt;
     background-color: rgb(191, 64, 191, 1);
@@ -216,10 +221,18 @@ section.pagenav {
     padding:0.5em;
 }
 
-.pagenav .button:hover {
+.button:hover {
     background-color: rgb(191,63,191,1);
     background-image: none;
     text-decoration: none;
+}
+
+a.button {
+  color:var(--primary-color);
+}
+
+a.button:visited {
+  color:var(--primary-color);
 }
 
 .pageNumber {
