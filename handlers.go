@@ -10,6 +10,7 @@ import (
 	"reflect"
 	"slices"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/signalstoerung/reader/internal/feeds"
@@ -248,4 +249,22 @@ func signupHandler(w http.ResponseWriter, r *http.Request) {
 
 func logoutHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
+func proxyHandler(w http.ResponseWriter, r *http.Request) {
+	_, path, found := strings.Cut(r.URL.Path, "/proxy/https:/")
+	if !found {
+		http.Error(w, "Invalid path", http.StatusBadRequest)
+		return
+	}
+	path = "https://" + path
+
+	path = expandUrlRecursive(path)
+
+	// strip URL parameters
+	pathStripped, _, _ := strings.Cut(path, "?")
+
+	archivePath := "https://archive.is/newest/" + pathStripped
+
+	http.Redirect(w, r, archivePath, http.StatusMovedPermanently)
 }

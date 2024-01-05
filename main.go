@@ -21,7 +21,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/signalstoerung/reader/internal/cache"
@@ -104,71 +103,6 @@ func initializeDB() {
 
 }
 
-/* Request handler functions */
-
-func proxyHandler(w http.ResponseWriter, r *http.Request) {
-	_, path, found := strings.Cut(r.URL.Path, "/proxy/https:/")
-	if !found {
-		http.Error(w, "Invalid path", http.StatusBadRequest)
-		return
-	}
-	path = "https://" + path
-
-	path = expandUrlRecursive(path)
-
-	// strip URL parameters
-	pathStripped, _, _ := strings.Cut(path, "?")
-
-	archivePath := "https://archive.is/newest/" + pathStripped
-
-	http.Redirect(w, r, archivePath, http.StatusMovedPermanently)
-}
-
-func apiHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Must use POST", http.StatusBadRequest)
-		return
-	}
-	if err := r.ParseForm(); err != nil {
-		http.Error(w, "Error parsing form data", http.StatusInternalServerError)
-		return
-	}
-
-	path := r.URL.Path
-
-	// client trying to log in
-	if path == "/api/gettoken/" {
-		apiLogin(w, r)
-		return
-	}
-
-	if path == "/api/user/add/" {
-		apiAddUser(w, r)
-		return
-	}
-
-	token := r.Form.Get("token")
-
-	if !tokenExists(token) {
-		http.Error(w, "Wrong or missing API token", http.StatusBadRequest)
-		return
-	}
-
-	switch path {
-	case "/api/feeds/":
-		apiFeedList(w)
-	case "/api/feed/add/":
-		apiAddFeed(w, r)
-	case "/api/feed/delete/":
-		apiDeleteFeed(w, r)
-	case "/api/headlines/":
-		apiHeadlines(w, r)
-	default:
-		http.Error(w, "Invalid endpoint", http.StatusBadRequest)
-	}
-
-}
-
 /* MAIN */
 
 func main() {
@@ -201,14 +135,6 @@ func main() {
 	} else {
 		log.Println("AI headline scoring inactive.")
 	}
-
-	// newscontextFile, err := os.Open(newscontextFilePath)
-	// if err == nil {
-	// 	context, err := io.ReadAll(newscontextFile)
-	// 	if err == nil {
-	// 		openai.NewsContext = string(context)
-	// 	}
-	// }
 
 	//	recreate reader.db if it doesn't exist
 	if _, err := os.Stat(dbFilePath); err != nil {

@@ -72,7 +72,6 @@ func (s *OpenAIApiStats) LogCostAndTokens(tokens int, cost float64) {
 
 var Stats OpenAIApiStats
 var db *gorm.DB
-var NewsContext string
 var Debug bool
 
 type Message struct {
