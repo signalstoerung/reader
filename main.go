@@ -18,7 +18,6 @@ package main
 import (
 	"errors"
 	"flag"
-	"io"
 	"log"
 	"net/http"
 	"os"
@@ -203,13 +202,13 @@ func main() {
 		log.Println("AI headline scoring inactive.")
 	}
 
-	newscontextFile, err := os.Open(newscontextFilePath)
-	if err == nil {
-		context, err := io.ReadAll(newscontextFile)
-		if err == nil {
-			openai.NewsContext = string(context)
-		}
-	}
+	// newscontextFile, err := os.Open(newscontextFilePath)
+	// if err == nil {
+	// 	context, err := io.ReadAll(newscontextFile)
+	// 	if err == nil {
+	// 		openai.NewsContext = string(context)
+	// 	}
+	// }
 
 	//	recreate reader.db if it doesn't exist
 	if _, err := os.Stat(dbFilePath); err != nil {
@@ -266,11 +265,12 @@ func main() {
 
 	if debug {
 		feeds.UpdateFeeds()
+		triggerScoring()
 	}
 
 	// serve web app
 	log.Print("Starting to serve.")
-	err = http.ListenAndServe(":8000", nil)
+	err := http.ListenAndServe(":8000", nil)
 	log.Println(err)
 	tickerUpdating.Stop()
 	cache.CleanTicker.Stop()

@@ -175,8 +175,12 @@ Outerloop:
 
 // this should be called after each DB update
 func triggerScoring() {
-	log.Println("Scoring of headlines triggered")
-	tickerScoring := time.NewTicker(1 * time.Minute)
-	cancel := make(chan (struct{}))
-	go scheduleScoring(tickerScoring, cancel)
+	if globalConfig.AIActive {
+		log.Println("Scoring of headlines triggered")
+		tickerScoring := time.NewTicker(1 * time.Minute)
+		cancel := make(chan (struct{}))
+		go scheduleScoring(tickerScoring, cancel)
+	} else {
+		log.Println("triggerScoring called but skipped because of global flag")
+	}
 }

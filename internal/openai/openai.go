@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"time"
@@ -19,9 +20,25 @@ const (
 	ModelGPT4Latest        = "gpt-4-1106-preview"
 	ModelGPT4Standard      = "gpt-4"
 	ResponseFormatJson     = "json_object"
-	NewsEditorPrompt       = "The user will provide a list of headlines. You have the role of a breaking news editor. Review headlines and decide if they are highly newsworthy and should be sent via a push notification to a global audience. The bar is high. Consider only hard news. Ignore vague headlines, news analysis and opinion pieces. Be extremely critical and look for global relevance and high impact. For headlines that qualify, return a JSON object with a `news` property, which is array of objects that have an `ID` and `headline` field (both copied from the input), a `confidence` field (0-100) and a `reason` field (concise, in a few words)."
 	FinishReasonMaxLength  = "length"
 )
+
+const NewsEditorPrompt = `
+The user will provide a list of headlines. Your job is to help the user select headlines that are likely to be of high interest and should be sent via a push notification to the user. The bar is high - the user wants you to be selective. Be extremely critical in applying the following criteria.
+
+The user is interested in:
+- Major breaking news: the kind of major news developments for which a TV station may interrupt regular programming.
+- Economic news: big market moves, interest rate announcements from the ECB or Fed, major economic or fiscal policy changes, unexpected economic indicators.
+- Geopolitics: US-China relations, EU policy, NATO, etc.
+- Semiconductor industry and adjacent industries. Companies such as TSMC, Intel, Nvidia, Qualcomm, ASML, Applied Materials.
+
+Additional criteria:
+- Ignore vague headlines and opinion pieces.
+- The user lives in Europe and is not interested in the minutiae of US politics or US culture wars.
+- Ignore articles about Donald Trump and the Republican primaries.
+
+For headlines that qualify, return a JSON object with a "news" property, which is array of objects that have an "ID" and "headline" field (both copied from the input), a "confidence" field (0-100) and a "reason" field (concise, in a few words).
+`
 
 type Role string
 
@@ -121,7 +138,10 @@ func init() {
 func chatCompletion(request Request) (Completion, error) {
 	completion := Completion{}
 	reqBody, err := json.Marshal(request)
-	//log.Printf("Json request object: %+v", string(reqBody))
+	if Debug {
+		log.Printf("Json request object: %+v", string(reqBody))
+		log.Printf("Using API key: %v", Stats.ApiKey)
+	}
 	if err != nil {
 		return completion, err
 	}
@@ -138,14 +158,20 @@ func chatCompletion(request Request) (Completion, error) {
 	if err != nil {
 		return completion, err
 	}
+	defer r.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		log.Printf("Request failed - %v / %v", resp.StatusCode, resp.Status)
+		body, err := io.ReadAll(r.Body)
+		if err == nil {
+			log.Println(string(body))
+		}
+		return completion, fmt.Errorf("API request failed with status code %d: %s", resp.StatusCode, resp.Status)
+	}
 
 	err = json.NewDecoder(resp.Body).Decode(&completion)
 	if err != nil {
 		return completion, err
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return completion, fmt.Errorf("API request failed with status code %d: %s", resp.StatusCode, resp.Status)
 	}
 
 	cost, err := completion.Cost()
@@ -162,18 +188,13 @@ func chatCompletion(request Request) (Completion, error) {
 // this should return a string of valid JSON
 func ScoreHeadlines(text string, recent []string) (string, error) {
 	context := fmt.Sprintf("\nContext: \nToday is %v.", time.Now().Format("Jan 2, 2006"))
-	if Debug {
-		log.Println("Recent headlines: ", recent)
-	}
-	if NewsContext != "" {
-		context += " Long-running stories in the media currently include:\n"
-		context += NewsContext
-		if len(recent) > 0 {
-			context += "\nThe following headlines are from the last hours. Avoid duplication unless there is a significant new development:\n"
-			for _, headline := range recent {
-				context += fmt.Sprintf("- %v\n", headline)
-			}
+	if len(recent) > 0 {
+		context += "\nThe following headlines are from the last hours. Avoid duplication unless there is a significant new development:\n"
+		for _, headline := range recent {
+			context += fmt.Sprintf("- %v\n", headline)
 		}
+	}
+	if Debug {
 		log.Printf("Using news context: %v", context)
 	}
 	request := Request{

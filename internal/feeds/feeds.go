@@ -214,7 +214,7 @@ func RecentBreakingNews() ([]string, bool) {
 	if db = Config.DB; db == nil {
 		return nil, false
 	}
-	result := db.Raw("select title from items where breaking_news_score > 89 order by published_parsed desc limit 10").Scan(&alerts)
+	result := db.Raw("select title from items where breaking_news_score > 84 order by published_parsed desc limit 10").Scan(&alerts)
 	if result.Error != nil {
 		log.Printf("Error retrieving alerts: %v", result.Error)
 		return nil, false
