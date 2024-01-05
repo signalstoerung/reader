@@ -27,7 +27,7 @@ type CustomClaims struct {
 type ContextKey string
 
 const (
-	tokenExpiryDuration time.Duration = 5 * time.Minute // set to 5 minutes for testing purposes only
+	tokenExpiryDuration time.Duration = 21 * 24 * time.Hour // three weeks
 	SessionContextKey   ContextKey    = "session"
 	ErrLoginFailed                    = "login failed"
 	ErrMustUsePost                    = "must use POST"
