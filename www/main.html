@@ -18,7 +18,7 @@
             <article>
                 <div class="headline">
                     {{if eq .AlertClass "alert"}}<div class="alertOn"></div>{{else}}<div class="alertOff"></div>{{end}}
-                    <div class="{{.AlertClass}}"><a onClick="toggle('{{.Id}}')">{{.Timestamp}} {{.FeedAbbr}}-{{.Title}}</a></div>    
+                    <div class="{{.AlertClass}}"><a href="#" onClick="toggle('{{.Id}}')">{{.Timestamp}} {{.FeedAbbr}}-{{.Title}}</a></div>    
                 </div>
                 <aside id="{{.Id}}">{{if ne .BreakingNewsReason ""}}<p class="breakingNewsReason">{{.BreakingNewsReason}}</p>{{end}}
                     <p>
