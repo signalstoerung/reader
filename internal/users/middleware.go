@@ -36,13 +36,12 @@ const (
 )
 
 func init() {
-	key := make([]byte, 64)
+	key := make([]byte, 256)
 	_, err := rand.Read(key)
 	if err != nil {
 		log.Printf("Unexpected error creating signing key: %v", err)
 		panic(err)
 	}
-	log.Printf("DEBUG INFO (REMOVE FROM PRODUCTION) signing key created: %v", key)
 	Config.Secret = key
 }
 
@@ -137,7 +136,7 @@ func LoginMiddleware(loginFailedRedirect string, next http.HandlerFunc) http.Han
 					Path:     "/",
 					Expires:  time.Now().Add(tokenExpiryDuration),
 					HttpOnly: true,
-					SameSite: http.SameSiteStrictMode,
+					SameSite: http.SameSiteLaxMode,
 				})
 				session := Session{
 					User:  user,
@@ -145,12 +144,12 @@ func LoginMiddleware(loginFailedRedirect string, next http.HandlerFunc) http.Han
 					Id:    "new", // will get replaced with the JWT ID the first time the cookie is read
 				}
 				ctx := context.WithValue(r.Context(), SessionContextKey, session)
-				next(w, r.WithContext(ctx))
+				next.ServeHTTP(w, r.WithContext(ctx))
 				return
 			}
 		} else {
 			// GET = do nothing, next handler will show login form
-			next(w, r)
+			next.ServeHTTP(w, r)
 			return
 		}
 	}
@@ -167,14 +166,22 @@ func SessionMiddleware(noSessionRedirect string, next http.HandlerFunc) http.Han
 				if err != nil {
 					log.Printf("Error decoding jwt: %v. Redirecting.", err)
 					// deleting cookie...may or may not work?!
-					http.SetCookie(w, &http.Cookie{Name: "jwt-session", Value: "", MaxAge: -1, HttpOnly: true, SameSite: http.SameSiteStrictMode})
+					http.SetCookie(w, &http.Cookie{
+						Name:     "jwt-session",
+						Value:    "",
+						Path:     "/",
+						Expires:  time.Now(),
+						MaxAge:   -1,
+						HttpOnly: true,
+						SameSite: http.SameSiteLaxMode,
+					})
 					// redirect to login screen
 					http.Redirect(w, r, noSessionRedirect, http.StatusSeeOther)
 					return
 				}
-				log.Printf("Found JWT for user %v", sess.User)
+				// log.Printf("Found JWT for user %v", sess.User)
 				ctx := context.WithValue(r.Context(), SessionContextKey, sess)
-				next(w, r.WithContext(ctx))
+				next.ServeHTTP(w, r.WithContext(ctx))
 				return
 			}
 
@@ -184,5 +191,20 @@ func SessionMiddleware(noSessionRedirect string, next http.HandlerFunc) http.Han
 			http.Redirect(w, r, noSessionRedirect, http.StatusSeeOther)
 			return
 		}
+	}
+}
+
+func DeleteCookie(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		http.SetCookie(w, &http.Cookie{
+			Name:     "jwt-session",
+			Value:    "",
+			Path:     "/",
+			Expires:  time.Now(),
+			MaxAge:   -1,
+			HttpOnly: true,
+			SameSite: http.SameSiteLaxMode,
+		})
+		next.ServeHTTP(w, r)
 	}
 }

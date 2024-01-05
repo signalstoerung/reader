@@ -25,6 +25,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/signalstoerung/reader/internal/cache"
 	"github.com/signalstoerung/reader/internal/feeds"
 	"github.com/signalstoerung/reader/internal/openai"
 	"github.com/signalstoerung/reader/internal/users"
@@ -231,18 +232,30 @@ func main() {
 	}
 
 	// register handlers
-	http.HandleFunc("/api/", apiHandler)
-	http.HandleFunc("/proxy/", proxyHandler)
+	http.HandleFunc("/", users.SessionMiddleware("/login/", headlinesHandler))
+	http.HandleFunc("/login/", users.LoginMiddleware("/login", loginHandler))
+	http.HandleFunc("/logout/", users.DeleteCookie(logoutHandler))
+	http.HandleFunc("/register/", signupHandler)
+	http.HandleFunc("/feeds/", users.SessionMiddleware("/login/", feedEditHandler))
+	http.HandleFunc("/archiveorg/", users.SessionMiddleware("/login/", archiveOrgHandler))
+	http.HandleFunc("/proxy/", users.SessionMiddleware("/login/", proxyHandler))
+	staticFileHandler := http.FileServer(http.Dir("./www"))
+	http.Handle("/static/", staticFileHandler)
+
+	// extra routes for icons etc.
+	http.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "./www/static/icons/favicon.ico")
+	})
+	http.HandleFunc("/site.webmanifest", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "./www/static/site.webmanifest")
+	})
+	http.HandleFunc("/apple-touch-icon.png", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "./www/static/icons/apple-touch-icon.png")
+	})
+
 	if debug {
-		http.HandleFunc("/test/", headlinesHandler)
 		http.HandleFunc("/testfeed/", feedEditHandler)
-		http.HandleFunc("/testauth/", users.SessionMiddleware("/testlogin/", loggedInHandler))
-		http.HandleFunc("/testlogin/", users.LoginMiddleware("/testlogin/", loginHandler))
-		http.HandleFunc("/archiveorg/", archiveOrgHandler)
-		http.HandleFunc("/register/", signupHandler)
 	}
-	staticFileHandler := http.FileServer(http.Dir("./www/static"))
-	http.Handle("/", staticFileHandler)
 
 	// start a ticker for periodic refresh using the const updateFrequency
 	tickerUpdating := time.NewTicker(time.Duration(globalConfig.UpdateFrequency) * time.Minute)
@@ -260,4 +273,7 @@ func main() {
 	err = http.ListenAndServe(":8000", nil)
 	log.Println(err)
 	tickerUpdating.Stop()
+	cache.CleanTicker.Stop()
+	log.Println("Stopped tickers.")
+	log.Println("Exiting.")
 }

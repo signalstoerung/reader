@@ -21,8 +21,8 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		// we may have gotten an error back through the redirect
 		loginerr := r.FormValue("error")
 
-		emitHTMLFromFile(w, "www/header.html")
-		templ, err := template.ParseFiles("www/login-form.html")
+		emitHTMLFromFile(w, HTMLHeaderPath)
+		templ, err := template.ParseFiles(HTMLLoginFormPath)
 		if err != nil {
 			log.Println(err)
 		}
@@ -30,41 +30,19 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Println(err)
 		}
-		emitHTMLFromFile(w, "www/footer.html")
+		emitHTMLFromFile(w, HTMLFooterPath)
 	}
 	if r.Method == http.MethodPost {
-		// if we get here, login was successful.
-		session, ok := r.Context().Value(users.SessionContextKey).(users.Session)
+		// if we get here, login should have been successful.
+		_, ok := r.Context().Value(users.SessionContextKey).(users.Session)
 		if !ok {
 			err := fmt.Sprintf("Error retrieving session: expected users.Session, got %v", reflect.TypeOf(r.Context().Value(users.SessionContextKey)))
 			log.Println(err)
 			http.Error(w, err, http.StatusInternalServerError)
 			return
 		}
-		emitHTMLFromFile(w, "www/header.html")
-		templ := template.Must(template.ParseFiles("www/logged-in.html"))
-		templ.Execute(w, session)
-		emitHTMLFromFile(w, "www/footer.html")
-	}
-}
-
-func loggedInHandler(w http.ResponseWriter, r *http.Request) {
-	session, ok := r.Context().Value(users.SessionContextKey).(users.Session)
-	if !ok {
-		err := fmt.Sprintf("Error retrieving session: expected users.Session, got %v", reflect.TypeOf(r.Context().Value(users.SessionContextKey)))
-		log.Println(err)
-		http.Error(w, err, http.StatusInternalServerError)
-		return
-	}
-	emitHTMLFromFile(w, "www/header.html")
-	defer emitHTMLFromFile(w, "www/footer.html")
-	templ, err := template.ParseFiles("www/logged-in.html")
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
-	templ.Execute(w, session)
-	if err != nil {
-		log.Println(err)
+		// redirect to homepage
+		http.Redirect(w, r, "/", http.StatusSeeOther)
 	}
 }
 
@@ -100,10 +78,18 @@ func headlinesHandler(w http.ResponseWriter, r *http.Request) {
 		pageData["NextPageLink"] = fmt.Sprintf("%s?page=%d&feed=%s", r.URL.Path, page+1, feed)
 	}
 
-	emitHTMLFromFile(w, "www/header.html")
-	defer emitHTMLFromFile(w, "www/footer.html")
+	emitHTMLFromFile(w, HTMLHeaderPath)
+	defer emitHTMLFromFile(w, HTMLFooterPath)
 	templ := template.Must(template.ParseFiles("www/main.html"))
 	templ.Execute(w, pageData)
+	session, ok := r.Context().Value(users.SessionContextKey).(users.Session)
+	if !ok {
+		log.Println("WARNING: no context found / page served anyway")
+		log.Printf("%+v", r)
+	} else {
+		log.Printf("/items/%v/%v (user: %v)", feed, page, session.User)
+	}
+
 }
 
 func archiveOrgHandler(w http.ResponseWriter, r *http.Request) {
@@ -258,4 +244,8 @@ func signupHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.Error(w, "Method not allowed", http.StatusBadRequest)
+}
+
+func logoutHandler(w http.ResponseWriter, r *http.Request) {
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }

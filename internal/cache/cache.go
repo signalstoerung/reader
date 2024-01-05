@@ -53,7 +53,7 @@ func (c Cache) Add(path string, content interface{}, expires time.Time) error {
 		Expires: expires,
 		Content: content,
 	}
-	log.Printf("Cached %v until %v", path, expires)
+	// log.Printf("Cached %v until %v", path, expires)
 	return nil
 }
 
@@ -62,13 +62,13 @@ func (c Cache) Get(path string) (interface{}, error) {
 	defer mutex.Unlock()
 	ci, ok := c[path]
 	if !ok {
-		log.Printf("%v not in cache", path)
+		// log.Printf("%v not in cache", path)
 		return nil, ErrNotInCache
 	}
 	if ci.Valid() {
 		return ci.Content, nil
 	} else {
-		log.Printf("Cache: %v expired", path)
+		// log.Printf("Cache: %v expired", path)
 	}
 	return nil, ErrNotInCache
 }
