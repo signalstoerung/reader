@@ -8,13 +8,13 @@ import (
 	"net/http"
 	"os"
 	"reflect"
-	"slices"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/signalstoerung/reader/internal/feeds"
 	"github.com/signalstoerung/reader/internal/users"
+	"golang.org/x/exp/slices"
 )
 
 func loginHandler(w http.ResponseWriter, r *http.Request) {
