@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"net/http"
 	"reflect"
 	"strconv"
 	"time"
@@ -180,14 +179,4 @@ func triggerScoring() {
 	tickerScoring := time.NewTicker(1 * time.Minute)
 	cancel := make(chan (struct{}))
 	go scheduleScoring(tickerScoring, cancel)
-}
-
-func breakingTestHandler(w http.ResponseWriter, r *http.Request) {
-	recent, ok := feeds.RecentBreakingNews()
-	if ok {
-		fmt.Fprintln(w, "Recent headlines:")
-		for _, hl := range recent {
-			fmt.Fprintf(w, "- %s\n", hl)
-		}
-	}
 }

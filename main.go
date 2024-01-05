@@ -235,9 +235,11 @@ func main() {
 	http.HandleFunc("/proxy/", proxyHandler)
 	if debug {
 		http.HandleFunc("/test/", headlinesHandler)
+		http.HandleFunc("/testfeed/", feedEditHandler)
 		http.HandleFunc("/testauth/", users.SessionMiddleware("/testlogin/", loggedInHandler))
 		http.HandleFunc("/testlogin/", users.LoginMiddleware("/testlogin/", loginHandler))
 		http.HandleFunc("/archiveorg/", archiveOrgHandler)
+		http.HandleFunc("/register/", signupHandler)
 	}
 	staticFileHandler := http.FileServer(http.Dir("./www/static"))
 	http.Handle("/", staticFileHandler)

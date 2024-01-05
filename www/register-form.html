@@ -1,8 +1,8 @@
 <main>
 	<div id="container">
-		<p><strong>{{.}}</strong></p>
-		<p>Please log in or <a href="/register/">register</a>.</p>
-		<form action="/testlogin/" method="post">
+		{{ if .signupsOpen }}
+		<p>Sign up by creating a user name and password:</p>
+		<form action="/register/" method="post">
 		  <div>
 			<input type="text" class="form-control" id="userid" name="userid" placeholder="user id">
 		  </div>
@@ -13,6 +13,9 @@
 			<input type="submit" class="btn btn-primary" value="Log in">
 		  </div>
 		</form>
+		{{ else }}
+		<p><strong>Sorry, signups are closed.</strong></p>
+		{{ end }}
 	</div>
     <nav>
 		<div><a href="/test/">Home</a></div>

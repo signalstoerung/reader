@@ -272,6 +272,14 @@ func DeleteFeed(f Feed) error {
 	return result.Error
 }
 
+func DeleteFeedById(id uint) error {
+	if Config.DB == nil {
+		return ErrNoDBConnection
+	}
+	result := Config.DB.Delete(&Feed{}, id)
+	return result.Error
+}
+
 // HELPERS
 
 func stripHTML(s string) string {

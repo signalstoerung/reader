@@ -3,7 +3,10 @@ package main
 import (
 	"errors"
 	"net/http"
+	"net/url"
 	"unicode"
+
+	"github.com/signalstoerung/reader/internal/feeds"
 )
 
 // isAlphaNum checks if a string is only letters, numbers and spaces (for user-supplied feed titles)
@@ -51,4 +54,21 @@ func expandUrlRecursive(shortUrl string) string {
 		return expandUrlRecursive(resp.Header["Location"][0])
 	}
 	return shortUrl
+}
+
+func checkFeedForm(name string, abbr string, formUrl string) (resultItem feeds.Feed, err error) {
+	if !isAlphaNum(name) || !isAlpha(abbr) {
+		err = errors.New("Name or abbr contains invalid characters")
+		return
+	}
+	_, err = url.Parse(formUrl)
+	if err != nil {
+		return
+	}
+	resultItem = feeds.Feed{
+		Name: name,
+		Abbr: abbr,
+		Url:  formUrl,
+	}
+	return
 }

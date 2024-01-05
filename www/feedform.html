@@ -1,0 +1,47 @@
+{{ $url := .PageUrl }}
+<main>
+    <div id="container">
+    <div class="feedListHeadline">Feed list</div>
+    {{ range .Feeds }}
+    <section class="feedList">
+        <div class="feedListNarrow">
+            {{.Name}}
+        </div>
+        <div class="feedListNarrow">
+            {{.Abbr}}
+        </div>
+        <div class="feedListWide">
+            {{.Url}}
+        </div>
+        <div class="feedListNarrow">
+            <form method="post" action="{{$url}}">
+                <input type="hidden" name="ID" value="{{.ID}}"><input type="hidden" name="action" value="delete">
+                <input type="submit" value="Delete">
+            </form>        
+        </div>
+    </section>
+    {{ end}}
+    <form method="post" action="{{$url}}">
+        <section class="feedList">
+            <div class="feedListNarrow">
+                <input type="text" name="name" size="12" maxlength="30" placeholder="NYT Homepage">
+            </div>
+            <div class="feedListNarrow">
+                <input type="text" name="abbr" size="5" maxlength="4" placeholder="NYT">
+            </div>
+            <div class="feedListWide">
+                <input type="url" name="url" size="30" maxlength="255" placeholder="https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml">
+            </div>
+            <div class="feedListNarrow">
+                <input type="hidden" name="action" value="add">
+                <input type="submit" value="Add">
+            </div>        
+        </section>
+    </form>
+    </div>
+    <nav>
+        <div><a href="/test/">Home</a></div>
+        <div><a href="#">Feeds</a></div>
+        <div><a href="#">Settings</a></div>
+    </nav>  
+</main>

@@ -69,11 +69,11 @@ func loggedInHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func headlinesHandler(w http.ResponseWriter, r *http.Request) {
-	feedlist := getAllFeedsFromCacheOrDB().([]feeds.Item)
+	feedlist := getAllFeedsFromCacheOrDB().([]feeds.Feed)
 	feed := r.FormValue("feed")
 	// check if 'feed' exists, if not, set it to ""
-	if !slices.ContainsFunc(feedlist, func(elem feeds.Item) bool {
-		return elem.FeedAbbr == feed
+	if !slices.ContainsFunc(feedlist, func(elem feeds.Feed) bool {
+		return elem.Abbr == feed
 	}) {
 		feed = ""
 	}
@@ -153,4 +153,109 @@ func emitHTMLFromFile(w http.ResponseWriter, filename string) {
 		return
 	}
 	fmt.Fprint(w, string(data))
+}
+
+func feedEditHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodGet {
+		// show form
+		emitHTMLFromFile(w, HTMLHeaderPath)
+		defer emitHTMLFromFile(w, HTMLFooterPath)
+		pageData := make(map[string]interface{})
+		feedlist, err := feeds.AllFeeds()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		pageData["Feeds"] = feedlist
+		pageData["PageUrl"] = r.URL.Path
+		templ := template.Must(template.ParseFiles(HTMLFeedFormPath))
+		templ.Execute(w, pageData)
+		return
+	}
+	if r.Method == http.MethodPost {
+		err := r.ParseForm()
+		if err != nil {
+			log.Println(err)
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		}
+		var resultMessage string
+		switch r.FormValue("action") {
+		case "add":
+			feed, err := checkFeedForm(r.FormValue("name"), r.FormValue("abbr"), r.FormValue("url"))
+			if err != nil {
+				resultMessage = fmt.Sprintf("Adding feed failed. (%v)", err)
+			} else {
+				err = feeds.CreateFeed(feed)
+				if err != nil {
+					resultMessage = fmt.Sprintf("Creating feed failed. (%v)", err)
+				} else {
+					resultMessage = fmt.Sprintf("Feed %v successfully created.", feed.Name)
+				}
+			}
+		case "delete":
+			id, err := strconv.Atoi(r.FormValue("ID"))
+			if err != nil {
+				http.Error(w, fmt.Sprintf("Invalid ID: %v", err), http.StatusBadRequest)
+				return
+			}
+			err = feeds.DeleteFeedById(uint(id))
+			if err != nil {
+				resultMessage = fmt.Sprintf("Error trying to delete feed: %v", err)
+			} else {
+				resultMessage = fmt.Sprintf("Feed deleted.")
+			}
+		default:
+			http.Error(w, "Action not specified", http.StatusBadRequest)
+			return
+		}
+		emitHTMLFromFile(w, HTMLHeaderPath)
+		defer emitHTMLFromFile(w, HTMLFooterPath)
+		templ := template.Must(template.ParseFiles(HTMLFeedFormResultPath))
+		templ.Execute(w, resultMessage)
+		return
+	}
+	http.Error(w, "Method not allowed", http.StatusBadRequest)
+	// get directly from DB to avoid caching issues
+}
+
+func signupHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodGet {
+		emitHTMLFromFile(w, HTMLHeaderPath)
+		var pageData = make(map[string]interface{})
+		if registrationsOpen {
+			pageData["signupsOpen"] = true
+		}
+		templ := template.Must(template.ParseFiles(HTMLRegisterFormPath))
+		templ.Execute(w, pageData)
+		emitHTMLFromFile(w, HTMLFooterPath)
+		return
+	}
+	if r.Method == http.MethodPost {
+		returnMessage := ""
+		if !registrationsOpen {
+			returnMessage = "Sorry, registrations are close"
+		}
+		if registrationsOpen {
+			username := r.FormValue("userid")
+			password := r.FormValue("password")
+			if username == "" || password == "" {
+				returnMessage = "Username or password missing"
+			}
+			if !isAlpha(username) {
+				returnMessage = "Username should only consist of letters."
+			}
+			err := users.CreateUser(username, password)
+			if err != nil {
+				returnMessage = fmt.Sprintf("Error creating new user: %v", err)
+			} else {
+				returnMessage = "Account created. You can now log in."
+			}
+		}
+		emitHTMLFromFile(w, HTMLHeaderPath)
+		templ := template.Must(template.ParseFiles(HTMLLoginFormPath))
+		templ.Execute(w, returnMessage)
+		emitHTMLFromFile(w, HTMLFooterPath)
+		return
+	}
+	http.Error(w, "Method not allowed", http.StatusBadRequest)
 }

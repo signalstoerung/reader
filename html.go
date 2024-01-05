@@ -22,6 +22,16 @@ type HeadlineItem struct {
 	Id                 int
 }
 
+const (
+	HTMLHeaderPath         = "www/header.html"
+	HTMLFooterPath         = "www/footer.html"
+	HTMLMainHeadlinesPath  = "www/main.html"
+	HTMLFeedFormPath       = "www/feedform.html"
+	HTMLFeedFormResultPath = "www/feedform-result.html"
+	HTMLRegisterFormPath   = "www/register-form.html"
+	HTMLLoginFormPath      = "www/login-form.html"
+)
+
 func ConvertItems(in []feeds.Item) []HeadlineItem {
 	var returnItems = make([]HeadlineItem, 0, len(in))
 	for count, item := range in {

@@ -145,6 +145,34 @@ article {
     background-color: var(--accent-two);
   }
   
+/* FEED FORM */
+
+.feedListHeadline {
+  font-weight: 800;
+  font-size: 14pt;
+  margin-bottom: 1em;
+}
+
+main section.feedList {
+  padding-bottom: 15px;
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.feedList input {
+  font-size: 12pt;
+}
+
+.feedListNarrow {
+  width: 150px;
+}
+
+.feedListWide {
+  width: 500px;
+  font-weight: 100;
+  font-size: 9pt;
+}
+
 /* PAGENAV */
 
 section.pagenav {
