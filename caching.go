@@ -10,8 +10,10 @@ import (
 )
 
 const (
-	PathFeeds = "/feeds"
-	PathItems = "/items"
+	PathFeeds                        = "/feeds"
+	PathItems                        = "/items"
+	CacheDurationItems time.Duration = 3 * time.Minute
+	CacheDurationFeeds time.Duration = 6 * time.Hour
 )
 
 func getAllFeedsFromCacheOrDB() interface{} {
@@ -21,7 +23,7 @@ func getAllFeedsFromCacheOrDB() interface{} {
 		if err != nil {
 			log.Panic(err)
 		}
-		cache.GlobalCache.Add(PathFeeds, feedlist, time.Now().Add(6*time.Hour))
+		cache.GlobalCache.Add(PathFeeds, feedlist, time.Now().Add(CacheDurationFeeds))
 	}
 	return feedlist
 }
@@ -34,7 +36,7 @@ func getItemsFromCacheOrDB(filter string, limit int, offset int) interface{} {
 		if err != nil {
 			log.Panic(err)
 		}
-		cache.GlobalCache.Add(path, items, time.Now().Add(5*time.Minute))
+		cache.GlobalCache.Add(path, items, time.Now().Add(CacheDurationItems))
 	}
 	return items
 }

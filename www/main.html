@@ -20,7 +20,7 @@
                     {{if eq .AlertClass "alert"}}<div class="alertOn"></div>{{else}}<div class="alertOff"></div>{{end}}
                     <div class="{{.AlertClass}}"><a href="#" onClick="toggle('{{.Id}}')">{{.Timestamp}} {{.FeedAbbr}}-{{.Title}}</a></div>    
                 </div>
-                <aside id="{{.Id}}">{{if ne .BreakingNewsReason ""}}<p class="breakingNewsReason">{{.BreakingNewsReason}}</p>{{end}}
+                <aside id="{{.Id}}">{{if ne .BreakingNewsReason "N/A"}}<p class="breakingNewsReason">{{.BreakingNewsReason}}</p>{{end}}
                     <p>
                       {{.Preview}}<br>
                       <a href="{{.Link}}" referrerpolicy="no-referrer" target="_blank">Go to article</a> | <a href="/proxy/{{.Link}}" target="_blank">archive.is link</a> | <a href="/archiveorg/?url={{.Link}}" target="_blank">archive.org link</a>
