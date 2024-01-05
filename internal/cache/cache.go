@@ -4,11 +4,21 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"sync"
 	"time"
 )
 
 const (
 	DurationMinimum time.Duration = 1 * time.Minute
+)
+
+var (
+	GlobalCache       = make(Cache)
+	CleanTicker       *time.Ticker
+	Cancel            chan struct{}
+	ErrExpiryTooShort = fmt.Errorf("expiry too short - minimum %v minutes", DurationMinimum.Minutes())
+	ErrNotInCache     = errors.New("not in cache")
+	mutex             sync.Mutex
 )
 
 type CacheItem struct {
@@ -23,6 +33,8 @@ func (ci *CacheItem) Valid() bool {
 type Cache map[string]CacheItem
 
 func (c Cache) Clean() {
+	mutex.Lock()
+	defer mutex.Unlock()
 	now := time.Now()
 	for key, val := range c {
 		if val.Expires.Before(now) {
@@ -32,6 +44,8 @@ func (c Cache) Clean() {
 }
 
 func (c Cache) Add(path string, content interface{}, expires time.Time) error {
+	mutex.Lock()
+	defer mutex.Unlock()
 	if expires.Before(time.Now().Add(DurationMinimum)) {
 		return ErrExpiryTooShort
 	}
@@ -44,6 +58,8 @@ func (c Cache) Add(path string, content interface{}, expires time.Time) error {
 }
 
 func (c Cache) Get(path string) (interface{}, error) {
+	mutex.Lock()
+	defer mutex.Unlock()
 	ci, ok := c[path]
 	if !ok {
 		log.Printf("%v not in cache", path)
@@ -78,11 +94,3 @@ func init() {
 	Cancel = make(chan struct{})
 	go clean()
 }
-
-var (
-	GlobalCache       = make(Cache)
-	CleanTicker       *time.Ticker
-	Cancel            chan struct{}
-	ErrExpiryTooShort = fmt.Errorf("expiry too short - minimum %v minutes", DurationMinimum.Minutes())
-	ErrNotInCache     = errors.New("not in cache")
-)
