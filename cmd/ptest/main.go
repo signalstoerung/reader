@@ -50,8 +50,10 @@ func scoreChunk(headlines []feeds.Item) (items []feeds.Item, err error) {
 	}
 
 	if len(jsonDecoded.News) == 0 {
+		log.Printf("%+v", scored)
 		log.Printf("%+v", jsonDecoded)
-		log.Panic(".News is empty!")
+		log.Println(".News is empty!")
+		return
 	}
 
 	scoredHeadlines := jsonDecoded.News
