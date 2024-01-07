@@ -189,7 +189,7 @@ func feedEditHandler(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				resultMessage = fmt.Sprintf("Error trying to delete feed: %v", err)
 			} else {
-				resultMessage = fmt.Sprintf("Feed deleted.")
+				resultMessage = "Feed deleted."
 			}
 		default:
 			http.Error(w, "Action not specified", http.StatusBadRequest)
