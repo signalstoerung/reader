@@ -8,11 +8,24 @@ feedSelector.addEventListener('change', (event) => {
   location.reload;
 });
 
-function toggle(id) {
-  const elem = document.getElementById(id);
-  if (elem.style.display != "block") {
-  elem.style.display = "block";
-  } else {
-  elem.style.display = "none";
-  }
+const headlineCountItem = document.getElementById("headlineCount");
+const headlineCount = headlineCountItem.getAttribute("data-count");
+console.log(`Headline count: ${headlineCount}`);
+addListeneners();
+
+function addListeneners() {
+  for (var i=0; i < headlineCount; i++) {
+    const lnk = "lnk" + i;
+    const prv = "prv" + i;
+    const link = document.getElementById(lnk);
+    link.addEventListener("click", (event)=>{
+      const preview = document.getElementById(prv);
+      if (preview.style.display != "block") {
+        preview.style.display = "block";
+      } else {
+        preview.style.display = "none";
+      }
+      event.preventDefault();
+    })
+  }  
 }

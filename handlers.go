@@ -69,6 +69,7 @@ func headlinesHandler(w http.ResponseWriter, r *http.Request) {
 	headlines := getItemsFromCacheOrDB(feed, globalConfig.ResultsPerPage, offset).([]feeds.Item)
 	pageData := make(map[string]interface{})
 	pageData["Headlines"] = ConvertItems(headlines)
+	pageData["HeadlineCount"] = len(headlines)
 	pageData["Feeds"] = feedlist
 	// pageData["Message"] = "Fake it till ya make it."
 	pageData["Page"] = page
