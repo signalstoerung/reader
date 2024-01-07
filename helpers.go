@@ -58,7 +58,7 @@ func expandUrlRecursive(shortUrl string) string {
 
 func checkFeedForm(name string, abbr string, formUrl string) (resultItem feeds.Feed, err error) {
 	if !isAlphaNum(name) || !isAlpha(abbr) {
-		err = errors.New("Name or abbr contains invalid characters")
+		err = errors.New("name or abbr contains invalid characters")
 		return
 	}
 	_, err = url.Parse(formUrl)

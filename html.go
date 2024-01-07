@@ -55,7 +55,7 @@ func ConvertItems(in []feeds.Item) []HeadlineItem {
 		returnItems = append(returnItems, HeadlineItem{
 			Title:              item.Title,
 			FeedAbbr:           item.FeedAbbr,
-			Timestamp:          item.PublishedParsed.Format("02 Jan 15:04"),
+			Timestamp:          item.PublishedParsed.In(globalConfig.localTZ).Format("02 Jan 15:04"),
 			Preview:            preview,
 			Link:               item.Link,
 			AlertClass:         alertClass,
