@@ -4,3 +4,4 @@ config.yaml
 githubtoken
 browserconfig.xml
 reader
+cmd/ptest/ptest

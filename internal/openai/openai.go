@@ -23,7 +23,7 @@ const (
 	FinishReasonMaxLength  = "length"
 )
 
-const NewsEditorPrompt = `
+const defaultPrompt string = `
 The user will provide a list of headlines. Your job is to help the user select headlines that are likely to be of high interest and should be sent via a push notification to the user. The bar is high - the user wants you to be selective. Be extremely critical in applying the following criteria.
 
 The user is interested in:
@@ -73,6 +73,7 @@ func (s *OpenAIApiStats) LogCostAndTokens(tokens int, cost float64) {
 var Stats OpenAIApiStats
 var db *gorm.DB
 var Debug bool
+var newsEditorPrompt string
 
 type Message struct {
 	Name    string `json:"name,omitempty"`
@@ -132,6 +133,15 @@ func init() {
 	if result.Error != nil {
 		log.Println(result.Error)
 	}
+	newsEditorPrompt = defaultPrompt
+}
+
+func SetGptPrompt(prompt string) {
+	newsEditorPrompt = prompt
+}
+
+func ResetGptPrompt() {
+	newsEditorPrompt = defaultPrompt
 }
 
 func chatCompletion(request Request) (Completion, error) {
@@ -153,6 +163,8 @@ func chatCompletion(request Request) (Completion, error) {
 	r.Header.Set("Authorization", "Bearer "+Stats.ApiKey)
 	r.Header.Set("Content-Type", "application/json")
 
+	//log.Printf("%+v", r)
+
 	resp, err := client.Do(r)
 	if err != nil {
 		return completion, err
@@ -161,7 +173,7 @@ func chatCompletion(request Request) (Completion, error) {
 
 	if resp.StatusCode != http.StatusOK {
 		log.Printf("Request failed - %v / %v", resp.StatusCode, resp.Status)
-		body, err := io.ReadAll(r.Body)
+		body, err := io.ReadAll(resp.Body)
 		if err == nil {
 			log.Println(string(body))
 		}
@@ -203,7 +215,7 @@ func ScoreHeadlines(text string, recent []string) (string, error) {
 		Messages: []Message{
 			{
 				Role:    RoleSystem,
-				Content: NewsEditorPrompt + context,
+				Content: newsEditorPrompt + context,
 			},
 			{
 				Role:    RoleUser,
