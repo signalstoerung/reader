@@ -5,3 +5,4 @@ githubtoken
 browserconfig.xml
 reader
 cmd/ptest/ptest
+db/gpt-prompt.txt

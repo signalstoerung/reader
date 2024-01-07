@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log"
+	"os"
 	"reflect"
 	"strconv"
 	"time"
@@ -183,4 +185,18 @@ func triggerScoring() {
 	} else {
 		log.Println("triggerScoring called but skipped because of global flag")
 	}
+}
+
+func setPromptFromFile(path string) error {
+	file, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	prompt, err := io.ReadAll(file)
+	if err != nil {
+		return err
+	}
+	openai.SetGptPrompt(string(prompt))
+	return nil
 }

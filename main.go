@@ -111,6 +111,7 @@ func main() {
 	var configFilePath string
 	var dbFilePath string
 	var aiActive bool
+	var promptFile string
 
 	// FLAGS
 	flag.BoolVar(&debug, "debug", false, "Activate debug options and logging")
@@ -119,6 +120,7 @@ func main() {
 	flag.StringVar(&dbFilePath, "db", "./db/reader.db", "File path to sqlite database")
 	flag.BoolVar(&aiActive, "ai", true, "AI headline scoring active; turn off for testing to avoid charges")
 	flag.BoolVar(&registrationsOpen, "register", false, "Allow registration once at startup")
+	flag.StringVar(&promptFile, "promptfile", "db/gpt-prompt.txt", "File containing the GPT prompt for headline scoring")
 	flag.Parse()
 	// load config
 	if err := loadConfig(configFilePath); err != nil {
@@ -132,6 +134,10 @@ func main() {
 
 	if aiActive {
 		log.Println("AI headline scoring active.")
+		err := setPromptFromFile(promptFile)
+		if err != nil {
+			log.Printf("Could not set prompt, using default (%v)", err)
+		}
 	} else {
 		log.Println("AI headline scoring inactive.")
 	}
