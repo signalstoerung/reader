@@ -139,8 +139,8 @@ func main() {
 	errPanic(err)
 	itemsB, err := scoreHeadlines(headlinesToTest, string(prompt2))
 	errPanic(err)
-	fmt.Println(" A | B | Headline | Reason A | Reason B")
+	fmt.Println(" A ; B ; Headline ; Reason A ; Reason B")
 	for i := range itemsA {
-		fmt.Printf("%3d|%3d|%s|%s|%s\n", itemsA[i].BreakingNewsScore, itemsB[i].BreakingNewsScore, itemsA[i].Title, itemsA[i].BreakingNewsReason, itemsB[i].BreakingNewsReason)
+		fmt.Printf("%3d;%3d;%s;%s;%s\n", itemsA[i].BreakingNewsScore, itemsB[i].BreakingNewsScore, itemsA[i].Title, itemsA[i].BreakingNewsReason, itemsB[i].BreakingNewsReason)
 	}
 }
