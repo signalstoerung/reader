@@ -52,7 +52,9 @@ type Feed struct {
 
 // The Item struct stores an item from an RSS feed.
 type Item struct {
-	gorm.Model
+	ID                 uint `gorm:"primaryKey"`
+	CreatedAt          time.Time
+	UpdatedAt          time.Time
 	Title              string
 	FeedAbbr           string
 	Link               string
