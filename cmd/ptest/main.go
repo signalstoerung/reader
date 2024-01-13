@@ -12,7 +12,6 @@ import (
 
 	"github.com/signalstoerung/reader/internal/feeds"
 	"github.com/signalstoerung/reader/internal/openai"
-	"gorm.io/gorm"
 )
 
 func errPanic(err error) {
@@ -75,9 +74,7 @@ func scoreChunk(headlines []feeds.Item) (items []feeds.Item, err error) {
 			return id == headline.ID
 		})
 		var newItem = feeds.Item{
-			Model: gorm.Model{
-				ID: headline.ID,
-			},
+			ID:    headline.ID,
 			Title: headline.Title,
 		}
 		if idx > -1 {
