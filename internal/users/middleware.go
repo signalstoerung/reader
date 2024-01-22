@@ -158,7 +158,7 @@ func LoginMiddleware(loginFailedRedirect string, next http.HandlerFunc) http.Han
 // looks for a cookie that identifies the user; if not found, redirects to url provided as noSessionRedirect
 func SessionMiddleware(noSessionRedirect string, next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodGet {
+		if r.Method == http.MethodGet || r.Method == http.MethodPost {
 			cookie, err := r.Cookie("jwt-session")
 			if err == nil {
 				// we have a cookie, so we can decode it
