@@ -15,9 +15,9 @@ import (
 
 const (
 	chatCompletionEndpoint = "https://api.openai.com/v1/chat/completions"
-	ModelGPT3Latest        = "gpt-3.5-turbo-1106"
+	ModelGPT3Latest        = "gpt-3.5-turbo-0125"
 	ModelGPT3Standard      = "gpt-3.5-turbo"
-	ModelGPT4Latest        = "gpt-4-1106-preview"
+	ModelGPT4Latest        = "gpt-4-turbo-preview"
 	ModelGPT4Standard      = "gpt-4"
 	ResponseFormatJson     = "json_object"
 	FinishReasonMaxLength  = "length"
@@ -48,10 +48,12 @@ const (
 
 // dollars per 1000 tokens
 var pricing = map[string]float64{
-	"gpt-3.5-turbo":      0.0020,
-	"gpt-3.5-turbo-1106": 0.0020,
-	"gpt-4":              0.06,
-	"gpt-4-1106-preview": 0.03,
+	"gpt-3.5-turbo":       0.0020,
+	"gpt-3.5-turbo-1106":  0.0020,
+	"gpt-4":               0.06,
+	"gpt-4-1106-preview":  0.03,
+	"gpt-3.5-turbo-0125":  0.0015,
+	"gpt-4-turbo-preview": 0.03,
 }
 
 type OpenAIApiStats struct {
