@@ -17,8 +17,8 @@ const (
 	chatCompletionEndpoint = "https://api.openai.com/v1/chat/completions"
 	ModelGPT3Latest        = "gpt-3.5-turbo-0125"
 	ModelGPT3Standard      = "gpt-3.5-turbo"
-	ModelGPT4Latest        = "gpt-4-turbo-preview"
-	ModelGPT4Standard      = "gpt-4"
+	ModelGPT4Latest        = "gpt-4-0125-preview"
+	ModelGPT4Standard      = "gpt-4-turbo-preview"
 	ResponseFormatJson     = "json_object"
 	FinishReasonMaxLength  = "length"
 )
