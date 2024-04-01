@@ -12,7 +12,7 @@ import (
 const (
 	PathFeeds                        = "/feeds"
 	PathItems                        = "/items"
-	CacheDurationItems time.Duration = 3 * time.Minute
+	CacheDurationItems time.Duration = 15 * time.Minute
 	CacheDurationFeeds time.Duration = 6 * time.Hour
 )
 

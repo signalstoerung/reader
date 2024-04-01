@@ -165,6 +165,7 @@ func FeedExists(s string) bool {
 	})
 }
 
+// Get items from database. Filter may be "", timestamp may be 0 for all items
 func Items(filter string, limit int, offset int, timestamp int64) ([]Item, error) {
 	var headlines []Item
 	var db *gorm.DB
@@ -173,7 +174,12 @@ func Items(filter string, limit int, offset int, timestamp int64) ([]Item, error
 	}
 
 	// convert Unix timestamp to time.Time
-	startTime := time.Unix(timestamp, 0)
+	var startTime time.Time
+	if timestamp == 0 {
+		startTime = time.Now()
+	} else {
+		startTime = time.Unix(timestamp, 0)
+	}
 
 	// if no filter string is supplied, use wildcard
 	if filter == "" {

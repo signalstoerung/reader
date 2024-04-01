@@ -69,13 +69,16 @@ func headlinesHandler(w http.ResponseWriter, r *http.Request) {
 	offset := (page - 1) * globalConfig.ResultsPerPage
 
 	// get starting timestamp
-	startTime := time.Now().Unix()
+	var startTime int64 = 0
 	ts, err := strconv.Atoi(r.FormValue("timestamp"))
 	if err == nil {
 		startTime = int64(ts)
 	}
 
 	headlines := getItemsFromCacheOrDB(feed, globalConfig.ResultsPerPage, offset, startTime).([]feeds.Item)
+	if startTime == 0 {
+		startTime = headlines[0].PublishedParsed.Unix()
+	}
 	pageData := make(map[string]interface{})
 	pageData["Headlines"] = ConvertItems(headlines)
 	pageData["HeadlineCount"] = len(headlines)
