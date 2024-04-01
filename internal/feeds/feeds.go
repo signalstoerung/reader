@@ -185,7 +185,7 @@ func Items(filter string, limit int, offset int, timestamp int64) ([]Item, error
 	if filter == "" {
 		filter = "%"
 	}
-	result := db.Limit(limit).Offset(offset).Order("published_parsed desc").Find(&headlines, "feed_abbr LIKE ? AND published_parsed < ?", filter, startTime)
+	result := db.Limit(limit).Offset(offset).Order("published_parsed desc").Find(&headlines, "feed_abbr LIKE ? AND published_parsed <= ?", filter, startTime)
 	if result.Error != nil {
 		return nil, result.Error
 	}
