@@ -56,6 +56,8 @@ func headlinesHandler(w http.ResponseWriter, r *http.Request) {
 	}) {
 		feed = ""
 	}
+
+	// get page number
 	page, err := strconv.Atoi(r.FormValue("page"))
 	if err != nil {
 		page = 1
@@ -63,21 +65,27 @@ func headlinesHandler(w http.ResponseWriter, r *http.Request) {
 	if page < 1 {
 		page = 1
 	}
-	// page 1 --> index 0
+	// calculate offset - page 1 --> index 0
 	offset := (page - 1) * globalConfig.ResultsPerPage
 
-	headlines := getItemsFromCacheOrDB(feed, globalConfig.ResultsPerPage, offset).([]feeds.Item)
+	// get starting timestamp
+	startTime := time.Now().Unix()
+	ts, err := strconv.Atoi(r.FormValue("timestamp"))
+	if err == nil {
+		startTime = int64(ts)
+	}
+
+	headlines := getItemsFromCacheOrDB(feed, globalConfig.ResultsPerPage, offset, startTime).([]feeds.Item)
 	pageData := make(map[string]interface{})
 	pageData["Headlines"] = ConvertItems(headlines)
 	pageData["HeadlineCount"] = len(headlines)
 	pageData["Feeds"] = feedlist
-	// pageData["Message"] = "Fake it till ya make it."
 	pageData["Page"] = page
-	pageData["PrevPageLink"] = fmt.Sprintf("%s?page=%d&feed=%s", r.URL.Path, page-1, feed)
+	pageData["PrevPageLink"] = fmt.Sprintf("%s?page=%d&feed=%s&timestamp=%d", r.URL.Path, page-1, feed, startTime)
 	if len(headlines) < globalConfig.ResultsPerPage {
 		pageData["NextPageLink"] = ""
 	} else {
-		pageData["NextPageLink"] = fmt.Sprintf("%s?page=%d&feed=%s", r.URL.Path, page+1, feed)
+		pageData["NextPageLink"] = fmt.Sprintf("%s?page=%d&feed=%s&timestamp=%d", r.URL.Path, page+1, feed, startTime)
 	}
 
 	emitHTMLFromFile(w, HTMLHeaderPath)
@@ -89,7 +97,7 @@ func headlinesHandler(w http.ResponseWriter, r *http.Request) {
 		log.Println("WARNING: no context found / page served anyway")
 		log.Printf("%+v", r)
 	} else {
-		log.Printf("/items/%v/%v (user: %v)", feed, page, session.User)
+		log.Printf("/items/%v/%d/%v (user: %v)", feed, startTime, page, session.User)
 	}
 
 }

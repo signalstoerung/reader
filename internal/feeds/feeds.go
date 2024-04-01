@@ -165,13 +165,21 @@ func FeedExists(s string) bool {
 	})
 }
 
-func Items(filter string, limit int, offset int) ([]Item, error) {
+func Items(filter string, limit int, offset int, timestamp int64) ([]Item, error) {
 	var headlines []Item
 	var db *gorm.DB
 	if db = Config.DB; db == nil {
 		return nil, ErrNoDBConnection
 	}
-	result := db.Limit(limit).Offset(offset).Order("published_parsed desc").Where(&Item{FeedAbbr: filter}).Find(&headlines)
+
+	// convert Unix timestamp to time.Time
+	startTime := time.Unix(timestamp, 0)
+
+	// if no filter string is supplied, use wildcard
+	if filter == "" {
+		filter = "%"
+	}
+	result := db.Limit(limit).Offset(offset).Order("published_parsed desc").Find(&headlines, "feed_abbr LIKE ? AND published_parsed < ?", filter, startTime)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -209,7 +217,7 @@ func FirstUnscoredHeadline() (Item, error) {
 	return headlines[len(headlines)-1], nil
 }
 
-// Returns the last 10 headlines scored 90 or higher
+// Returns the last 10 headlines scored 85 or higher
 func RecentBreakingNews() ([]string, bool) {
 	var alerts []string
 	var db *gorm.DB

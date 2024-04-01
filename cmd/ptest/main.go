@@ -9,6 +9,7 @@ import (
 	"os"
 	"slices"
 	"strconv"
+	"time"
 
 	"github.com/signalstoerung/reader/internal/feeds"
 	"github.com/signalstoerung/reader/internal/openai"
@@ -131,7 +132,7 @@ func main() {
 
 	err = feeds.Config.OpenDatabase(dbPath)
 	errPanic(err)
-	headlinesToTest, err := feeds.Items("", 100, 0)
+	headlinesToTest, err := feeds.Items("", 100, 0, time.Now().Unix())
 	errPanic(err)
 
 	itemsA, err := scoreHeadlines(headlinesToTest, string(prompt1))
