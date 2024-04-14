@@ -104,12 +104,14 @@ article {
   .alertOn {
     margin-top:auto;
     margin-bottom: auto;
-    width: 1em;
+    width: 15px;
     height: 1em;
     margin-right: 5px;
     background-color: var(--accent);
     border-radius: 7.5px;
     animation: pulse 3s infinite;
+    flex-grow: 0;
+    flex-shrink: 0;
   }
   
   @keyframes pulse {
@@ -127,9 +129,15 @@ article {
   .alertOff {
     margin-top:auto;
     margin-bottom: auto;
-    width: 1em;
+    width: 15px;
     height: 1em;
     margin-right: 5px;
+    flex-grow: 0;
+    flex-shrink: 0;
+  }
+
+  .headlineTitle {
+    flex-grow: 1;
   }
 
   .alert {
