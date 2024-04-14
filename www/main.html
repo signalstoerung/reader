@@ -17,9 +17,8 @@
     <div id="container">
         {{range .Headlines }}
             <article>
-                <div class="headline">
-                    {{if eq .AlertClass "alert"}}<div class="alertOn"></div>{{else}}<div class="alertOff"></div>{{end}}
-                    <div class="headlineTitle {{.AlertClass}}"><a href="#" id="lnk{{.Id}}">{{.Timestamp}} {{.FeedAbbr}}-{{.Title}}</a></div>    
+                <div class="headline {{.AlertClass}}">
+                    <a href="#" id="lnk{{.Id}}">{{.Timestamp}} {{.FeedAbbr}}-{{.Title}}</a>
                 </div>
                 <aside id="prv{{.Id}}">{{if ne .BreakingNewsReason "N/A"}}<p class="breakingNewsReason">{{.BreakingNewsReason}}</p>{{end}}
                     <p>
