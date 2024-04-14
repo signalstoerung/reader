@@ -35,7 +35,8 @@ function addListeneners() {
         title: shrLink.dataset.headline,
         text: shrLink.dataset.headline + "\n" + shrLink.dataset.preview,
         url: shrLink.dataset.link
-      })
+      });
+      event.preventDefault();
     })
   }  
 }
