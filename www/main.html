@@ -20,7 +20,9 @@
                 <div class="headline {{.AlertClass}}">
                     <a href="#" id="lnk{{.Id}}">{{.Timestamp}} {{.FeedAbbr}}-{{.Title}}</a>
                 </div>
-                <aside id="prv{{.Id}}">{{if ne .BreakingNewsReason "N/A"}}<p class="breakingNewsReason">{{.BreakingNewsReason}}</p>{{end}}
+                <aside id="prv{{.Id}}">
+                  <div class="shareIcon"><a href="#" id="shr{{.Id}}" data-headline="{{.Title}}" data-link="{{.Link}}" data-preview="{{.Preview}}"><img src="/static/icons/share.svg"></a></div>
+                  {{if ne .BreakingNewsReason "N/A"}}<p class="breakingNewsReason">{{.BreakingNewsReason}}</p>{{end}}
                     <p>
                       {{.Preview}}<br>
                       <a href="{{.Link}}" referrerpolicy="no-referrer" target="_blank">Go to article</a> | <a href="/proxy/{{.Link}}" target="_blank">archive.is link</a> | <a href="/archiveorg/?url={{.Link}}" target="_blank">archive.org link</a>

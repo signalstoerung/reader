@@ -27,5 +27,15 @@ function addListeneners() {
       }
       event.preventDefault();
     })
+
+    const shr = "shr" + i;
+    const shrLink = document.getElementById(shr)
+    shrLink.addEventListener("click", (event)=>{
+      navigator.share({
+        title: shrLink.dataset.headline,
+        text: shrLink.dataset.headline + "\n" + shrLink.dataset.preview,
+        url: shrLink.dataset.link
+      })
+    })
   }  
 }

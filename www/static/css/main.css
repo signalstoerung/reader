@@ -111,6 +111,16 @@ article {
     background-color: var(--accent-two);
   }
   
+.shareIcon {
+    float: right;
+    max-width: 1em;
+    max-height: 1em;
+  }
+
+.shareIcon img {
+  width: 100%;
+  height: 100%;
+}
 
 /* FEED FORM */
 
