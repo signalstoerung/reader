@@ -1,7 +1,7 @@
-function generateWobblyLine(length, wobbleAmount) {
+function generateWobblyLine(length, height, wobbleAmount) {
     const startX = 0;
-    const startY = 10;
-    const lineWidth = 15;
+    const startY = height/2 + wobbleAmount;
+    const lineWidth = height;
     let path = `M ${startX},${startY} `;
     const distanceX = length;
     const segments = Math.floor(distanceX / 30) + 1; // Adjust for more/less segments
@@ -35,7 +35,8 @@ function generateWobblyLine(length, wobbleAmount) {
         continue;
     }
     const headlineWidth = headlineLink[0].getBoundingClientRect().width;
-    const svg = generateWobblyLine(headlineWidth, wobbleAmount);
+    const headlineHeight = headlineLink[0].getBoundingClientRect().height;
+    const svg = generateWobblyLine(headlineWidth, headlineHeight, wobbleAmount);
     svg.setAttribute('width', headlineWidth);
     headline.appendChild(svg);
   }
