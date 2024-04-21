@@ -99,9 +99,14 @@ article {
   }
 
   .redacted {
-    background-color: black;
-    color:black;
-    filter: blur(5px);
+    position:relative;
+  }
+  
+  .redacted > svg {
+    position: absolute;
+    top:0;
+    left:0;
+    z-index: -1;
   }
 
   .alert {
