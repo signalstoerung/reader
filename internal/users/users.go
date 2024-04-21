@@ -3,6 +3,7 @@ package users
 import (
 	"errors"
 
+	"github.com/signalstoerung/reader/internal/feeds"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -10,8 +11,10 @@ import (
 
 type User struct {
 	gorm.Model
-	UserName string
-	Password string
+	UserName   string
+	Password   string
+	Keywords   []Keyword
+	SavedItems []feeds.Item `gorm:"many2many:user_saved_items"`
 }
 
 type Configuration struct {
@@ -31,6 +34,7 @@ func (c *Configuration) OpenDatabase(path string) error {
 	if err != nil {
 		return err
 	}
+	db.AutoMigrate(&Keyword{})
 	db.AutoMigrate(&User{})
 	c.DB = db
 	return nil
