@@ -7,6 +7,7 @@ import (
 
 	"github.com/signalstoerung/reader/internal/cache"
 	"github.com/signalstoerung/reader/internal/feeds"
+	"github.com/signalstoerung/reader/internal/users"
 )
 
 const (
@@ -39,4 +40,17 @@ func getItemsFromCacheOrDB(filter string, limit int, offset int, timestamp int64
 		cache.GlobalCache.Add(path, items, time.Now().Add(CacheDurationItems))
 	}
 	return items
+}
+
+func getUserKeywordsFromCacheorDB(username string) interface{} {
+	path := fmt.Sprintf("/keywords/%v", username)
+	kl, err := cache.GlobalCache.Get(path)
+	if err != nil {
+		kl, err = users.KeywordsForUser(username)
+		if err != nil {
+			log.Panic(err)
+		}
+		cache.GlobalCache.Add(path, kl, time.Now().Add(time.Hour*1))
+	}
+	return kl
 }

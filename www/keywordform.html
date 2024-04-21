@@ -1,0 +1,41 @@
+<main>
+    <div id="container">
+        <div class="keywordHeadline">Keyword list</div>
+        {{ range . }}
+        <section class="keywordList">
+            <div>{{ .Text }}</div>
+            <div><span class="keywordTag">{{ if eq .Mode "KeywordSuppress" }}Suppress{{else}}Highlight{{end}}</span></div>
+            <div>{{ .Annotation }}</div>
+            <div>
+                <form method="POST" action=".">
+                    <input type="hidden" name="action" value="delete">
+                    <input type="hidden" name="id" value="{{.ID}}">
+                    <input type="submit" value="Delete">
+                </form>
+            </div>
+        </section>
+        {{ end }}
+        <form method="POST" action=".">
+            <section class="keywordList">
+                <div><input type="text" name="keyword" placeholder="keyword" size="12"></div>
+                <div>
+                    <select name="mode">
+                        <option selected value="suppress">Suppress</option>
+                        <option value="highlight">Highlight</option>
+                    </select>
+                </div>
+                <div><input type="text" name="annotation" placeholder="comment" size="12"></div>
+                <div>
+                    <input type="hidden" name="action" value="add">
+                    <input type="submit" value="Submit">
+                </div>
+            </section>
+        </form>
+    </div>
+    <nav>
+		<div><a href="/">Home</a></div>
+		<div><a href="/feeds/">Feeds</a></div>
+        <div><a href="/keywords/">Filters</a></div>
+		<div><a href="/logout/">Logout</a></div>
+    </nav>  
+</main>

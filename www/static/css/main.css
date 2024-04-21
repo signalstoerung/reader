@@ -98,6 +98,12 @@ article {
     display:none;
   }
 
+  .redacted {
+    background-color: black;
+    color:black;
+    filter: blur(5px);
+  }
+
   .alert {
     color: var(--accent);
     background-color: var(--accent-two);
@@ -153,6 +159,30 @@ input.button {
   width: 500px;
   font-weight: 100;
   font-size: 9pt;
+}
+
+/* KEYWORD FORM */
+
+.keywordHeadline {
+  font-weight: 800;
+  font-size: 14pt;
+  margin-bottom: 1em;
+}
+
+.keywordList {
+  display:flex;
+}
+
+.keywordList > div {
+  width:150px;
+}
+
+.keywordTag {
+  background: var(--accent);
+  color: var(--accent-two);
+  border-radius: 0.5em;
+  font-size: small;
+  padding:0.1em 0.3em;
 }
 
 /* PAGENAV */

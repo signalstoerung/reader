@@ -48,6 +48,14 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func headlinesHandler(w http.ResponseWriter, r *http.Request) {
+	// get session context
+	session, ok := r.Context().Value(users.SessionContextKey).(users.Session)
+	if !ok {
+		log.Println("Aborting: no session context found")
+		http.Error(w, "Not logged in", http.StatusForbidden)
+		return
+	}
+
 	feedlist := getAllFeedsFromCacheOrDB().([]feeds.Feed)
 	feed := r.FormValue("feed")
 	// check if 'feed' exists, if not, set it to ""
@@ -80,7 +88,7 @@ func headlinesHandler(w http.ResponseWriter, r *http.Request) {
 		startTime = headlines[0].PublishedParsed.Unix()
 	}
 	pageData := make(map[string]interface{})
-	pageData["Headlines"] = ConvertItems(headlines)
+	pageData["Headlines"] = ConvertItems(headlines, getUserKeywordsFromCacheorDB(session.User).(users.KeywordList))
 	pageData["HeadlineCount"] = len(headlines)
 	pageData["Feeds"] = feedlist
 	pageData["Page"] = page
@@ -95,13 +103,7 @@ func headlinesHandler(w http.ResponseWriter, r *http.Request) {
 	defer emitHTMLFromFile(w, HTMLFooterPath)
 	templ := template.Must(template.ParseFiles("www/main.html"))
 	templ.Execute(w, pageData)
-	session, ok := r.Context().Value(users.SessionContextKey).(users.Session)
-	if !ok {
-		log.Println("WARNING: no context found / page served anyway")
-		log.Printf("%+v", r)
-	} else {
-		log.Printf("/items/%v/%d/%v (user: %v)", feed, startTime, page, session.User)
-	}
+	log.Printf("/items/%v/%d/%v (user: %v)", feed, startTime, page, session.User)
 
 }
 
@@ -152,6 +154,80 @@ func emitHTMLFromFile(w http.ResponseWriter, filename string) {
 		return
 	}
 	fmt.Fprint(w, string(data))
+}
+
+func keywordEditHandler(w http.ResponseWriter, r *http.Request) {
+	// get session
+	session, ok := r.Context().Value(users.SessionContextKey).(users.Session)
+	if !ok {
+		http.Error(w, "Not logged in", http.StatusForbidden)
+		return
+	}
+
+	// GET displays existing keywords and a form to add new ones
+	if r.Method == http.MethodGet {
+		log.Printf("GET /keywords/ (user: %v)", session.User)
+		// get keywords for user
+		keywordList, err := users.KeywordsForUser(session.User)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		emitHTMLFromFile(w, HTMLHeaderPath)
+		defer emitHTMLFromFile(w, HTMLFooterPath)
+		templ := template.Must(template.ParseFiles(HTMLKeywordFormPath))
+		templ.Execute(w, keywordList)
+		return
+	}
+	if r.Method == http.MethodPost {
+		log.Printf("POST /keywords/ %v (user: %v)", r.FormValue("action"), session.User)
+		action := r.FormValue("action")
+		if action == "add" {
+			var mode users.KeywordMode
+			formMode := r.FormValue("mode")
+			switch formMode {
+			case "highlight":
+				mode = users.HighlightMode
+			case "suppress":
+				mode = users.SuppressMode
+			default:
+				http.Error(w, "Invalid mode", http.StatusBadRequest)
+				return
+			}
+			if r.FormValue("keyword") == "" || !isAlphaNum(r.FormValue("keyword")) {
+				http.Error(w, "Keyword must be alphanumeric, cannot be empty", http.StatusBadRequest)
+				return
+			}
+			keyword := users.Keyword{
+				Mode:       mode,
+				Text:       r.FormValue("keyword"),
+				Annotation: r.FormValue("annotation"),
+			}
+			err := users.AddKeywordForUser(keyword, session.User)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+			} else {
+				http.Redirect(w, r, "/keywords/", http.StatusSeeOther)
+			}
+			return
+		}
+		if action == "delete" {
+			id, err := strconv.Atoi(r.FormValue("id"))
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			err = users.DeleteKeywordForUser(uint(id), session.User)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			http.Redirect(w, r, "/keywords/", http.StatusSeeOther)
+			return
+		}
+		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
+	}
 }
 
 func feedEditHandler(w http.ResponseWriter, r *http.Request) {

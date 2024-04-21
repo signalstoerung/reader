@@ -168,6 +168,7 @@ func main() {
 	http.HandleFunc("/logout/", users.DeleteCookie(logoutHandler))
 	http.HandleFunc("/register/", signupHandler)
 	http.HandleFunc("/feeds/", users.SessionMiddleware("/login/", feedEditHandler))
+	http.HandleFunc("/keywords/", users.SessionMiddleware("/login/", keywordEditHandler))
 	http.HandleFunc("/archiveorg/", users.SessionMiddleware("/login/", archiveOrgHandler))
 	http.HandleFunc("/proxy/", users.SessionMiddleware("/login/", proxyHandler))
 	staticFileHandler := http.FileServer(http.Dir("./www"))

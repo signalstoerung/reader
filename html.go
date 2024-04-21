@@ -1,6 +1,9 @@
 package main
 
-import "github.com/signalstoerung/reader/internal/feeds"
+import (
+	"github.com/signalstoerung/reader/internal/feeds"
+	"github.com/signalstoerung/reader/internal/users"
+)
 
 type HeadlinesPage struct {
 	Headlines       []feeds.Item
@@ -18,6 +21,7 @@ type HeadlineItem struct {
 	Preview            string
 	Link               string
 	AlertClass         string
+	Redacted           bool
 	BreakingNewsReason string
 	Id                 int
 }
@@ -30,9 +34,10 @@ const (
 	HTMLFeedFormResultPath = "www/feedform-result.html"
 	HTMLRegisterFormPath   = "www/register-form.html"
 	HTMLLoginFormPath      = "www/login-form.html"
+	HTMLKeywordFormPath    = "www/keywordform.html"
 )
 
-func ConvertItems(in []feeds.Item) []HeadlineItem {
+func ConvertItems(in []feeds.Item, keywordList users.KeywordList) []HeadlineItem {
 	var returnItems = make([]HeadlineItem, 0, len(in))
 	for count, item := range in {
 		var preview string
@@ -52,6 +57,17 @@ func ConvertItems(in []feeds.Item) []HeadlineItem {
 		default:
 			alertClass = ""
 		}
+
+		// keywords override alert classes
+		mode := keywordList.Match(item.Title)
+		if mode == users.HighlightMode {
+			item.BreakingNewsReason = "* Keyword triggered * " + item.BreakingNewsReason
+			alertClass = "alert"
+		}
+		if mode == users.SuppressMode {
+			alertClass = "redacted"
+		}
+
 		returnItems = append(returnItems, HeadlineItem{
 			Title:              item.Title,
 			FeedAbbr:           item.FeedAbbr,
