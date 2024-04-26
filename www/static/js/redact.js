@@ -18,7 +18,7 @@ function generateWobblyLine(length, height, wobbleAmount) {
     const pathElem = document.createElementNS('http://www.w3.org/2000/svg', 'path');
     pathElem.setAttribute('d', path);
     pathElem.setAttribute('fill', 'none');
-    pathElem.setAttribute('stroke', 'black');
+    pathElem.setAttribute('stroke', '#4d4d4d');
     pathElem.setAttribute('stroke-width', lineWidth);
     
     svgElement.appendChild(pathElem);
