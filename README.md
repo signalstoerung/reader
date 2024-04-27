@@ -8,12 +8,13 @@ It polls RSS feeds and displays them in a "news ticker" style: A timestamp, a ta
 
 ## Breaking news
 
-New in this version is headline scoring. This is using gpt-3.5-turbo through the OpenAI API. The model is prompted to identify high-priority breaking news through the system prompt. The system prompt is tailored in two ways:
+Reader includes headline scoring using gpt-3.5-turbo through the OpenAI API. The model is prompted to identify high-priority news through the system prompt. 
 
-1. Reading the broader news context from a text file (default: `db/newscontext.txt`). This can be used to describe the big ongoing stories in the media that the model is unlikely to be aware of due to its content cutoff date.
-2. The last 10 top-scoring headlines are retrieved from the database in real time and appended to the system prompt to avoid duplication of recent headlines.
+The system prompt is editable; it can be set using the `-promptfile` option when launching reader. If no prompt file is present, the default is used (see `const defaultPrompt` in the `internal/openai` package).
 
-To ensure we get valid JSON back from the model, we use the `response_format` option ([see API docs](https://platform.openai.com/docs/api-reference/chat/create#chat-create-response_format)). This requires using the latest version of the 3.5-turbo model, gpt-3.5-turbo-1106. 
+In addition, the last 10 top-scoring headlines are retrieved from the database in real time and appended to the system prompt as context to avoid duplication of recent headlines.
+
+To ensure we get valid JSON back from the model, we use the `response_format` option ([see API docs](https://platform.openai.com/docs/api-reference/chat/create#chat-create-response_format)). 
 
 (Using gpt-4 did not appear to meaningfully improve performance, so we went with the cheaper option.)
 
@@ -35,7 +36,7 @@ Description=Reader, a simple RSS reader
 After=network.target
 
 [Service]
-ExecStart=/home/nimi/reader/reader.sh
+ExecStart=[...path...]/reader.sh
 Type=Simple
 
 [Install]
@@ -52,24 +53,26 @@ system.d should pick it up from there.
 
 ### Dev / testing
 
-For **local testing**, create a directory `./db/` in the work directory (Reader will store the sqlite database there), copy the sample config file into the same directory, rename it `config.yaml` and edit it as appropriate. Then you can run Reader with `go run .` and access it in a browser at `localhost:8000`.
+For **local testing**, create a directory `./db/` in the work directory (Reader will store the sqlite database there), copy the sample config file into the same directory, rename it `config.yaml` and edit it as appropriate. Then you can run Reader with `go run .` (potentially adding the flag `-ai=false` to save OpenAI API costs) and access it in a browser at `localhost:8000`.
 
 ### Account creation
 
 - The first time that Reader runs, it will allow anyone to create an account. On the homepage, enter a user name and password and click 'register'. Once you've done this, registrations will automatically close and nobody else can create an account. (I'm assuming that this is a single-user instance.)
-- *Troubleshooting:* Account creation is only open when Reader starts up and does not find a database. So if you started Reader and stopped it again without creating an account, registration will be closed when you restart, because Reader will have created the database on the first startup. Solution: set the -register flag to true. 
+- *Troubleshooting:* Account creation is only open when Reader starts up and does not find a database. So if you started Reader and stopped it again without creating an account, registration will be closed when you restart, because Reader will have created the database on the first startup. Solution: set the -register flag. 
 
 ## Command-line flags
 
 ```
+  -ai
+    	AI headline scoring active; turn off for testing to avoid charges (default true)
   -config string
     	File path to a yaml config file (default "./db/config.yaml")
-  -context string
-    	File path to a text file describing the news context (default "./db/newscontext.txt")
   -db string
     	File path to sqlite database (default "./db/reader.db")
   -debug
     	Activate debug options and logging
+  -promptfile string
+    	File containing the GPT prompt for headline scoring (default "db/gpt-prompt.txt")
   -register
     	Allow registration once at startup
 ```
