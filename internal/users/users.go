@@ -70,5 +70,10 @@ func VerifyUser(username string, password string) error {
 }
 
 func UserByName(name string) (User, error) {
-	return User{}, ErrNotImplemented
+	var maybeUser User
+	result := Config.DB.Where(&User{UserName: name}).First(&maybeUser)
+	if result.Error != nil {
+		return User{}, result.Error
+	}
+	return maybeUser, nil
 }

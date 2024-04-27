@@ -22,6 +22,7 @@
                 </div>
                 <aside id="prv{{.Id}}">
                   <div class="shareIcon"><a href="#" id="shr{{.Id}}" data-headline="{{.Title}}" data-link="{{.Link}}" data-preview="{{.Preview}}"><img src="/static/icons/share.svg"></a></div>
+                  <div class="shareIcon"><form action="/saved/" method="post"><input type="hidden" name="action" value="save"><input type="hidden" name="itemId" value="{{.ItemId}}"><input class="saveSubmitButton" type="submit" value="&#9734;"></form></div>
                   {{if ne .BreakingNewsReason "N/A"}}<p class="breakingNewsReason">{{.BreakingNewsReason}}</p>{{end}}
                     <p>
                       {{.Preview}}<br>

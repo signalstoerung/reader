@@ -156,6 +156,53 @@ func emitHTMLFromFile(w http.ResponseWriter, filename string) {
 	fmt.Fprint(w, string(data))
 }
 
+func savedItemsHandler(w http.ResponseWriter, r *http.Request) {
+	session, ok := r.Context().Value(users.SessionContextKey).(users.Session)
+	if !ok {
+		http.Error(w, "Not logged in", http.StatusForbidden)
+		return
+	}
+	if r.Method == http.MethodPost {
+		// user wants to save or delete an item
+		action := r.FormValue("action")
+		itemId, err := strconv.Atoi(r.FormValue("itemId"))
+		if err != nil {
+			http.Error(w, "No itemId provided", http.StatusBadRequest)
+			return
+		}
+		switch action {
+		case "save":
+			err = users.AddItemForUser(session.User, itemId)
+			if err != nil {
+				log.Printf("Error adding item for user %v: %v", session.User, err)
+				http.Error(w, "Error adding item", http.StatusInternalServerError)
+				return
+			}
+			// this code will be called from JavaScript, so we provide a minimal response, not a full page
+			fmt.Fprintf(w, "Successfully added item %v for user %v", itemId, session.User)
+			return
+		case "delete":
+			http.Error(w, "Not implemented", http.StatusNotImplemented)
+			return
+		default:
+			http.Error(w, "'action' missing or bad value", http.StatusBadRequest)
+			return
+		}
+	}
+	if r.Method == http.MethodGet {
+		// display list of saved items
+		items, err := users.SavedItemsForUser(session.User)
+		if err != nil {
+			log.Printf("Error retrieving items for user %v: %v", session.User, err)
+			http.Error(w, "Error retrieving items", http.StatusInternalServerError)
+			return
+		}
+		fmt.Fprintf(w, "Found items:\n%+v", items)
+		return
+	}
+	http.Error(w, "Bad request", http.StatusBadRequest)
+}
+
 func keywordEditHandler(w http.ResponseWriter, r *http.Request) {
 	// get session
 	session, ok := r.Context().Value(users.SessionContextKey).(users.Session)

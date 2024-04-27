@@ -24,6 +24,7 @@ type HeadlineItem struct {
 	Redacted           bool
 	BreakingNewsReason string
 	Id                 int
+	ItemId             int
 }
 
 const (
@@ -77,6 +78,7 @@ func ConvertItems(in []feeds.Item, keywordList users.KeywordList) []HeadlineItem
 			AlertClass:         alertClass,
 			BreakingNewsReason: item.BreakingNewsReason,
 			Id:                 count,
+			ItemId:             int(item.ID),
 		})
 	}
 	return returnItems
