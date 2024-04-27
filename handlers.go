@@ -182,7 +182,14 @@ func savedItemsHandler(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprintf(w, "Successfully added item %v for user %v", itemId, session.User)
 			return
 		case "delete":
-			http.Error(w, "Not implemented", http.StatusNotImplemented)
+			err = users.DeleteItemForUser(session.User, itemId)
+			if err != nil {
+				s := fmt.Sprintf("Error deleting saved item for user %v: %v", session.User, err)
+				log.Println(s)
+				http.Error(w, s, http.StatusInternalServerError)
+				return
+			}
+			http.Redirect(w, r, "/saved/", http.StatusSeeOther)
 			return
 		default:
 			http.Error(w, "'action' missing or bad value", http.StatusBadRequest)

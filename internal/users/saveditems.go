@@ -29,3 +29,20 @@ func AddItemForUser(username string, itemId int) error {
 	result = Config.DB.Save(&user)
 	return result.Error
 }
+
+func DeleteItemForUser(username string, itemId int) error {
+	user, err := UserByName(username)
+	if err != nil {
+		return err
+	}
+	var item feeds.Item
+	err = Config.DB.Model(&user).Association("SavedItems").Find(&item, itemId)
+	if err != nil {
+		return err
+	}
+	err = Config.DB.Model(&user).Association("SavedItems").Delete(&item)
+	if err != nil {
+		return err
+	}
+	return nil
+}
