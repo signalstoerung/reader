@@ -1,0 +1,26 @@
+<main>
+    <div id="container">
+        <h2>Saved stories</h2>
+        {{ range . }}
+            <article>
+                <div class="headline">
+                    <h3>{{.Title}}</h3>
+                    <div class="removeSaved"><form action="/saved/" method="post"><input type="hidden" name="action" value="delete"><input type="hidden" name="itemId" value="{{.ID}}"><input type="submit" value="remove" class="button"></form>
+                    </div>
+                    <p class="attribution">{{.PublishedParsed.Format "Jan 02, 15:04"}} | {{.FeedAbbr}}</p>
+                    <p>
+                        {{.Description}}<br>
+                        <a href="{{.Link}}" referrerpolicy="no-referrer" target="_blank" class="colorfulLink">Go to article</a>
+                    </p>
+                </div>
+            </article>
+        {{ end }}
+    </div>
+    <nav>
+        <div><a href="/">Home</a></div>
+        <div><a href="/feeds/">Feeds</a></div>
+        <div><a href="/keywords/">Filters</a></div>
+        <div><a href="/saved/">Saved</a></div>
+        <div><a href="/logout/">Logout</a></div>
+      </nav>
+  </main>

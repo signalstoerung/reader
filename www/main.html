@@ -1,5 +1,4 @@
 <main>
-    <div id="headlineCount" data-count="{{.HeadlineCount}}"></div>
     {{ if .Message}}
     <div class="warning">{{.Message}}</div>
     {{ end }}
@@ -18,15 +17,16 @@
         {{range .Headlines }}
             <article>
                 <div class="headline {{.AlertClass}}">
-                    <a href="#" id="lnk{{.Id}}">{{.Timestamp}} {{.FeedAbbr}}-{{.Title}}</a>
+                    <a href="#">{{.Timestamp}} {{.FeedAbbr}}-{{.Title}}</a>
                 </div>
-                <aside id="prv{{.Id}}">
-                  <div class="shareIcon"><a href="#" id="shr{{.Id}}" data-headline="{{.Title}}" data-link="{{.Link}}" data-preview="{{.Preview}}"><img src="/static/icons/share.svg"></a></div>
-                  <div class="shareIcon"><form action="/saved/" method="post"><input type="hidden" name="action" value="save"><input type="hidden" name="itemId" value="{{.ItemId}}"><input class="saveSubmitButton" type="submit" value="&#9734;"></form></div>
+                <aside>
+                  <div class="shareAction" data-headline="{{.Title}}" data-link="{{.Link}}" data-preview="{{.Preview}}"><img src="/static/icons/share.svg"></div>
+                  <div class="saveAction" data-id="{{.ItemId}}">&#9734</div>
                   {{if ne .BreakingNewsReason "N/A"}}<p class="breakingNewsReason">{{.BreakingNewsReason}}</p>{{end}}
                     <p>
                       {{.Preview}}<br>
-                      <a href="{{.Link}}" referrerpolicy="no-referrer" target="_blank">Go to article</a> | <a href="/proxy/{{.Link}}" target="_blank">archive.is link</a> | <a href="/archiveorg/?url={{.Link}}" target="_blank">archive.org link</a>
+                      <a href="{{.Link}}" referrerpolicy="no-referrer" target="_blank">Go to article</a> 
+                      <!-- | <a href="/proxy/{{.Link}}" target="_blank">archive.is link</a> | <a href="/archiveorg/?url={{.Link}}" target="_blank">archive.org link</a> -->
                     </p>
                     <!-- <a href="http://webcache.googleusercontent.com/search?q=cache:{{.Link}}" target="_blank">Google Cache</a> -->
                 </aside>
@@ -44,6 +44,7 @@
       <div><a href="/">Home</a></div>
       <div><a href="/feeds/">Feeds</a></div>
       <div><a href="/keywords/">Filters</a></div>
+      <div><a href="/saved/">Saved</a></div>
       <div><a href="/logout/">Logout</a></div>
     </nav>
   </main>

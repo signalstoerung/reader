@@ -122,14 +122,14 @@ article {
     background-color: var(--accent-two);
   }
   
-.shareIcon {
+.shareAction, .saveAction {
     float: right;
     max-width: 1em;
     max-height: 1em;
     margin-left:1em;
   }
 
-.shareIcon img {
+.shareAction img {
   width: 100%;
   height: 100%;
 }
@@ -141,6 +141,37 @@ article {
   font: inherit; /* Inherit font styles from the parent element */
   cursor: pointer; /* Indicate that it's clickable */  
 }
+
+/* SAVED STORIES */ 
+
+h3 {
+  margin-bottom: 0.25em;
+}
+
+.removeSaved {
+  float:right;
+}
+
+.attribution {
+  font-size: 8pt;
+  font-weight: 100;
+  line-height: 1;
+  margin:0;
+}
+
+.colorfulLink {
+  text-decoration: none;
+  color: var(--accent) !important;
+}
+
+.colorfulLink:hover {
+  text-decoration: underline;
+}
+
+.colorfulLink:visited {
+  color: var(--accent);
+}
+
 
 /* FEED FORM */
 
@@ -159,10 +190,6 @@ main section.feedList {
 input {
   font-size: 12pt;
   margin-bottom: 5px;
-}
-
-input.button {
-
 }
 
 .feedListNarrow {

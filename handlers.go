@@ -197,7 +197,10 @@ func savedItemsHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Error retrieving items", http.StatusInternalServerError)
 			return
 		}
-		fmt.Fprintf(w, "Found items:\n%+v", items)
+		emitHTMLFromFile(w, HTMLHeaderPath)
+		defer emitHTMLFromFile(w, HTMLFooterPath)
+		templ := template.Must(template.ParseFiles("www/saved.html"))
+		templ.Execute(w, items)
 		return
 	}
 	http.Error(w, "Bad request", http.StatusBadRequest)

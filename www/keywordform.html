@@ -10,7 +10,7 @@
                 <form method="POST" action=".">
                     <input type="hidden" name="action" value="delete">
                     <input type="hidden" name="id" value="{{.ID}}">
-                    <input type="submit" value="Delete">
+                    <input type="submit" value="Delete" class="button">
                 </form>
             </div>
         </section>
@@ -27,7 +27,7 @@
                 <div><input type="text" name="annotation" placeholder="comment" size="12"></div>
                 <div>
                     <input type="hidden" name="action" value="add">
-                    <input type="submit" value="Submit">
+                    <input type="submit" value="Submit" class="button">
                 </div>
             </section>
         </form>
@@ -36,6 +36,7 @@
 		<div><a href="/">Home</a></div>
 		<div><a href="/feeds/">Feeds</a></div>
         <div><a href="/keywords/">Filters</a></div>
+        <div><a href="/saved/">Saved</a></div>
 		<div><a href="/logout/">Logout</a></div>
     </nav>  
 </main>
