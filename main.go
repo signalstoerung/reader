@@ -107,7 +107,6 @@ func initializeDB() {
 
 func main() {
 	var debug bool
-	var newscontextFilePath string
 	var configFilePath string
 	var dbFilePath string
 	var aiActive bool
@@ -115,7 +114,6 @@ func main() {
 
 	// FLAGS
 	flag.BoolVar(&debug, "debug", false, "Activate debug options and logging")
-	flag.StringVar(&newscontextFilePath, "context", "./db/newscontext.txt", "File path to a text file describing the news context")
 	flag.StringVar(&configFilePath, "config", "./db/config.yaml", "File path to a yaml config file")
 	flag.StringVar(&dbFilePath, "db", "./db/reader.db", "File path to sqlite database")
 	flag.BoolVar(&aiActive, "ai", true, "AI headline scoring active; turn off for testing to avoid charges")
