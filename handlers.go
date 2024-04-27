@@ -238,6 +238,7 @@ func keywordEditHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	if r.Method == http.MethodPost {
 		log.Printf("POST /keywords/ %v (user: %v)", r.FormValue("action"), session.User)
+		invalidateKeywordCacheForUser(session.User)
 		action := r.FormValue("action")
 		if action == "add" {
 			var mode users.KeywordMode

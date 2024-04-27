@@ -54,3 +54,9 @@ func getUserKeywordsFromCacheorDB(username string) interface{} {
 	}
 	return kl
 }
+
+func invalidateKeywordCacheForUser(username string) {
+	path := fmt.Sprintf("/keywords/%v", username)
+	cache.GlobalCache.Invalidate(path)
+
+}

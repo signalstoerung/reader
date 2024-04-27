@@ -57,6 +57,12 @@ func (c Cache) Add(path string, content interface{}, expires time.Time) error {
 	return nil
 }
 
+func (c Cache) Invalidate(path string) {
+	mutex.Lock()
+	defer mutex.Unlock()
+	delete(c, path)
+}
+
 func (c Cache) Get(path string) (interface{}, error) {
 	mutex.Lock()
 	defer mutex.Unlock()
@@ -67,8 +73,6 @@ func (c Cache) Get(path string) (interface{}, error) {
 	}
 	if ci.Valid() {
 		return ci.Content, nil
-	} else {
-		// log.Printf("Cache: %v expired", path)
 	}
 	return nil, ErrNotInCache
 }

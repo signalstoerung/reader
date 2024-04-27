@@ -4,6 +4,7 @@ import (
 	"log"
 	"strings"
 	"time"
+	"unicode"
 )
 
 type KeywordMode string
@@ -25,14 +26,28 @@ type Keyword struct {
 	UserID     uint        // reference back to user
 }
 
-// Compares a the search string provided to the keyword list and returns a Mode (highlight/suppress/do nothing)
-func (kl KeywordList) Match(search string) KeywordMode {
-	for _, k := range kl {
-		if strings.Contains(strings.ToLower(search), strings.ToLower(k.Text)) {
-			return k.Mode
+func onlyAlphaNumeric(in string) string {
+	var out = make([]byte, 0, len(in))
+	for _, r := range in {
+		if unicode.IsLetter(r) || unicode.IsDigit(r) {
+			out = append(out, byte(r))
 		}
 	}
-	return DoNothingMode
+	return string(out)
+}
+
+// Compares a the search string provided to the keyword list and returns a Mode (highlight/suppress/do nothing)
+func (kl KeywordList) Match(search string) (KeywordMode, string) {
+	words := strings.Fields(strings.ToLower(search))
+	for _, word := range words {
+		word = onlyAlphaNumeric(word)
+		for _, k := range kl {
+			if word == strings.ToLower(k.Text) {
+				return k.Mode, k.Text
+			}
+		}
+	}
+	return DoNothingMode, ""
 }
 
 func KeywordsForUser(name string) (KeywordList, error) {

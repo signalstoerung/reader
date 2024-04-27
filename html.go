@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/signalstoerung/reader/internal/feeds"
 	"github.com/signalstoerung/reader/internal/users"
 )
@@ -60,12 +62,13 @@ func ConvertItems(in []feeds.Item, keywordList users.KeywordList) []HeadlineItem
 		}
 
 		// keywords override alert classes
-		mode := keywordList.Match(item.Title)
+		mode, keyword := keywordList.Match(item.Title)
 		if mode == users.HighlightMode {
-			item.BreakingNewsReason = "* Keyword triggered * " + item.BreakingNewsReason
+			item.BreakingNewsReason = fmt.Sprintf("* Keyword '%v' triggered * %v", keyword, item.BreakingNewsReason)
 			alertClass = "alert"
 		}
 		if mode == users.SuppressMode {
+			item.BreakingNewsReason = fmt.Sprintf("* Keyword '%v' triggered * %v", keyword, item.BreakingNewsReason)
 			alertClass = "redacted"
 		}
 

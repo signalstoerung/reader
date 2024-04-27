@@ -187,7 +187,8 @@ func main() {
 	})
 
 	if debug {
-		http.HandleFunc("/testfeed/", feedEditHandler)
+		// add debug options here
+		log.Printf("Debug mode on.")
 	}
 
 	// start a ticker for periodic refresh using the const updateFrequency
