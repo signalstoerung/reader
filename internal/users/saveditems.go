@@ -8,7 +8,7 @@ func SavedItemsForUser(username string) ([]feeds.Item, error) {
 		return nil, err
 	}
 	var items = make([]feeds.Item, 0, 20)
-	err = Config.DB.Model(&user).Association("SavedItems").Find(&items)
+	err = Config.DB.Order("published_parsed desc").Model(&user).Association("SavedItems").Find(&items)
 	if err != nil {
 		return nil, err
 	}
