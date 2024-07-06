@@ -61,7 +61,9 @@ main {
   }
 
   #feed {
-    font-size: 11pt;
+    font-size: 10pt;
+    border:0;
+    background-color: ghostwhite;
   }
 
   #search {
