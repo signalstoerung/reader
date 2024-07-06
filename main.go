@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"time"
+	_ "time/tzdata"
 
 	"github.com/signalstoerung/reader/internal/cache"
 	"github.com/signalstoerung/reader/internal/feeds"
@@ -25,6 +26,7 @@ import (
 type Config struct {
 	UpdateFrequency   int    `yaml:"updateFrequency"`
 	TimeZoneGMTOffset int    `yaml:"gmtOffset"`
+	Timezone          string `yaml:"timezone"`
 	Secret            string `yaml:"secret"`
 	ResultsPerPage    int    `yaml:"resultsPerPage"`
 	DeeplApiKey       string `yaml:"deeplApiKey"`
@@ -56,8 +58,19 @@ func loadConfig(path string) error {
 	if err != nil {
 		return err
 	}
-	offset := globalConfig.TimeZoneGMTOffset * 3600
-	globalConfig.localTZ = time.FixedZone("Local", offset)
+	if globalConfig.Timezone != "" {
+		loc, err := time.LoadLocation(globalConfig.Timezone)
+		if err == nil {
+			globalConfig.localTZ = loc
+			log.Printf("Setting timezone to %v", loc.String())
+		} else {
+			log.Printf("Error loading timezone %s: %s. Setting to UTC.", globalConfig.Timezone, err)
+			globalConfig.localTZ = time.FixedZone("UTC", 0)
+		}
+	} else {
+		offset := globalConfig.TimeZoneGMTOffset * 3600
+		globalConfig.localTZ = time.FixedZone("Local", offset)
+	}
 	openai.Stats.ApiKey = globalConfig.OpenAIToken
 	return nil
 }

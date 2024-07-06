@@ -6,6 +6,9 @@ updateFrequency: 15
 # gmtOffset in hours - positive for east, negative for west
 gmtOffset: 1
 
+# timezone according to the tzinfo nomenclature - if present, the gmtOffset value is ignored
+timezone: Europe/Amsterdam
+
 # secret is a 64 hex character string
 secret: ... 
 
