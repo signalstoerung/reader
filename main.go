@@ -1,17 +1,6 @@
 /*
 Reader is my "Poor Man's Bloomberg" - news pulled in from various RSS feeds, timestamped and tagged with a source,
 and displayed in the style of a ticker with only headlines.
-
-It starts up a web server that serves:
-
-	/         the headlines (paginated and optionally filtered)
-	/feeds/   an interface to add or delete feeds
-	/update/  manually trigger a feed update
-
-In the backend, Reader uses an sqlite database, stored in the subfolder ./db/. At first startup, when the DB does not exist,
-it is created and seeded with a couple of recommended feeds.
-
-A config file named config.yaml needs to be present in ./db/ as well, or Reader will panic.
 */
 package main
 
