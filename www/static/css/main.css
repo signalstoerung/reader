@@ -44,9 +44,42 @@ main {
     min-height: 80vh;
 }
 
+#topbar {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.5em;
+}
+
+#topbar > div {
+  padding-right: 1em;
+  
+}
+
   #feedSelector {
-    margin-bottom: 0.5em;
+    display: flex;
+    align-items: center;
   }
+
+  #feed {
+    font-size: 11pt;
+  }
+
+  #search {
+    display: flex;
+    align-items: center;
+    gap:0.25em;
+  }
+
+  #searchTerms {
+    font-size: 10pt;
+    margin:0;
+  }
+
+  #searchButton {
+    font-size: 8pt;
+    border-radius: 5px;
+  }
+
   
   #container {
     border: 0.5px solid;

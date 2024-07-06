@@ -1,4 +1,5 @@
 <main>
+  <section id="topbar">
     {{ if .Message}}
     <div class="warning">{{.Message}}</div>
     {{ end }}
@@ -13,7 +14,12 @@
         <option value="">Clear filter</option>"
       </select>
     </div>
-    <div id="container">
+    <div id="search">
+      <input type="text" id="searchTerms" length="10" placeholder="search terms" />
+      <button id="searchButton" class="button">Search</button>
+    </div>
+  </section>
+    <section id="container">
         {{range .Headlines }}
             <article>
                 <div class="headline {{.AlertClass}}">
@@ -39,7 +45,7 @@
             {{if eq .NextPageLink ""}}<a class="buttonDisabled">Next</a>
             {{else}}<a href="{{.NextPageLink}}" class="button">Next</a>{{end}}
         </section>
-    </div>
+    </section>
     <nav>
       <div><a href="/">Home</a></div>
       <div><a href="/feeds/">Feeds</a></div>
