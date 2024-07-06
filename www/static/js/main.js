@@ -3,8 +3,10 @@ feedSelector.addEventListener('change', (event) => {
   console.log(`Changing to feed: ${event.target.value}`);
   const feed = event.target.value;
   const location = window.location;
-  location.search = `feed=${feed}`;
-  location.reload;
+  const params = new URL(location).searchParams;
+  const search = params.get('q');
+  location.search = `feed=${feed}&q=${search}`;
+//  location.reload;
 });
 
 function redirect(searchTerms){
