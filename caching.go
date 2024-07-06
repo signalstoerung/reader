@@ -29,11 +29,11 @@ func getAllFeedsFromCacheOrDB() interface{} {
 	return feedlist
 }
 
-func getItemsFromCacheOrDB(filter string, limit int, offset int, timestamp int64) interface{} {
-	path := fmt.Sprintf("%s/%s/%d/%d/%d", PathItems, filter, limit, timestamp, offset)
+func getItemsFromCacheOrDB(filter string, search string, limit int, offset int, timestamp int64) interface{} {
+	path := fmt.Sprintf("%s/%s/%s/%d/%d/%d", PathItems, filter, search, limit, timestamp, offset)
 	items, err := cache.GlobalCache.Get(path)
 	if err != nil {
-		items, err = feeds.Items(filter, limit, offset, timestamp)
+		items, err = feeds.Items(filter, search, limit, offset, timestamp)
 		if err != nil {
 			log.Panic(err)
 		}

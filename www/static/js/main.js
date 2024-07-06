@@ -1,10 +1,18 @@
-console.log("main.js loaded");
 const feedSelector = document.getElementById('feed');
 feedSelector.addEventListener('change', (event) => {
   console.log(`Changing to feed: ${event.target.value}`);
   const feed = event.target.value;
   const location = window.location;
   location.search = `feed=${feed}`;
+  location.reload;
+});
+
+const searchButton = document.getElementById('searchButton');
+searchButton.addEventListener('click', (event)=>{
+  const searchTerms = document.getElementById('searchTerms');
+  const searchWords = searchTerms.value;
+  const location = window.location;
+  location.search = `q=${searchWords}`;
   location.reload;
 });
 

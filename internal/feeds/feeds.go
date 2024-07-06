@@ -166,7 +166,7 @@ func FeedExists(s string) bool {
 }
 
 // Get items from database. Filter may be "", timestamp may be 0 for all items
-func Items(filter string, limit int, offset int, timestamp int64) ([]Item, error) {
+func Items(filter string, search string, limit int, offset int, timestamp int64) ([]Item, error) {
 	var headlines []Item
 	var db *gorm.DB
 	if db = Config.DB; db == nil {
@@ -181,11 +181,24 @@ func Items(filter string, limit int, offset int, timestamp int64) ([]Item, error
 		startTime = time.Unix(timestamp, 0)
 	}
 
-	// if no filter string is supplied, use wildcard
-	if filter == "" {
-		filter = "%"
+	var result *gorm.DB
+
+	if filter == "" && search == "" {
+		// simple search, no filters or search terms
+		result = db.Limit(limit).Offset(offset).Order("published_parsed desc").Find(&headlines, "published_parsed <= ?", startTime)
+	} else {
+		// if no filter string is supplied, use wildcard
+		if filter == "" {
+			filter = "%"
+		}
+		if search == "" {
+			search = "%"
+		} else {
+			search = "%" + search + "%"
+		}
+		result = db.Limit(limit).Offset(offset).Order("published_parsed desc").Find(&headlines, "feed_abbr LIKE ? AND title LIKE ? AND published_parsed <= ?", filter, search, startTime)
+
 	}
-	result := db.Limit(limit).Offset(offset).Order("published_parsed desc").Find(&headlines, "feed_abbr LIKE ? AND published_parsed <= ?", filter, startTime)
 	if result.Error != nil {
 		return nil, result.Error
 	}

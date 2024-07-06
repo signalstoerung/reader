@@ -83,27 +83,39 @@ func headlinesHandler(w http.ResponseWriter, r *http.Request) {
 		startTime = int64(ts)
 	}
 
-	headlines := getItemsFromCacheOrDB(feed, globalConfig.ResultsPerPage, offset, startTime).([]feeds.Item)
-	if startTime == 0 {
+	pageData := make(map[string]interface{})
+
+	// get search term
+	rawSearch := r.FormValue("q")
+	var cleanSearch string
+	if !isAlphaNum(rawSearch) {
+		rawSearch = ""
+		pageData["Message"] = "Invalid search term. Only alphanumeric characters allowed."
+	} else {
+		cleanSearch = strings.TrimSpace(rawSearch)
+		pageData["SearchTerms"] = cleanSearch
+		log.Printf("Searching for '%s'", cleanSearch)
+	}
+	headlines := getItemsFromCacheOrDB(feed, cleanSearch, globalConfig.ResultsPerPage, offset, startTime).([]feeds.Item)
+	if startTime == 0 && len(headlines) > 0 {
 		startTime = headlines[0].PublishedParsed.Unix()
 	}
-	pageData := make(map[string]interface{})
 	pageData["Headlines"] = ConvertItems(headlines, getUserKeywordsFromCacheorDB(session.User).(users.KeywordList))
 	pageData["HeadlineCount"] = len(headlines)
 	pageData["Feeds"] = feedlist
 	pageData["Page"] = page
-	pageData["PrevPageLink"] = fmt.Sprintf("%s?page=%d&feed=%s&timestamp=%d", r.URL.Path, page-1, feed, startTime)
+	pageData["PrevPageLink"] = fmt.Sprintf("%s?page=%d&feed=%s&timestamp=%d&q=%s", r.URL.Path, page-1, feed, startTime, cleanSearch)
 	if len(headlines) < globalConfig.ResultsPerPage {
 		pageData["NextPageLink"] = ""
 	} else {
-		pageData["NextPageLink"] = fmt.Sprintf("%s?page=%d&feed=%s&timestamp=%d", r.URL.Path, page+1, feed, startTime)
+		pageData["NextPageLink"] = fmt.Sprintf("%s?page=%d&feed=%s&timestamp=%d&q=%s", r.URL.Path, page+1, feed, startTime, cleanSearch)
 	}
 
 	emitHTMLFromFile(w, HTMLHeaderPath)
 	defer emitHTMLFromFile(w, HTMLFooterPath)
 	templ := template.Must(template.ParseFiles("www/main.html"))
 	templ.Execute(w, pageData)
-	log.Printf("/items/%v/%d/%v (user: %v)", feed, startTime, page, session.User)
+	log.Printf("/items/%v/%s/%d/%v (user: %v)", feed, cleanSearch, startTime, page, session.User)
 
 }
 
