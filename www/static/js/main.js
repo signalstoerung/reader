@@ -5,7 +5,11 @@ feedSelector.addEventListener('change', (event) => {
   const location = window.location;
   const params = new URL(location).searchParams;
   const search = params.get('q');
-  location.search = `feed=${feed}&q=${search}`;
+  if (search) {
+    location.search = `feed=${feed}&q=${search}`;
+  } else {
+    location.search = `feed=${feed}`;
+  }
 //  location.reload;
 });
 
@@ -13,7 +17,7 @@ function redirect(searchTerms){
   const location = window.location;
   const params = new URL(location).searchParams;
   const feed = params.get('feed');
-  if (feed != "") {
+  if (feed) {
     location.search = `?q=${searchTerms}&feed=${feed}`
   } else {
     location.search = `q=${searchTerms}`;
