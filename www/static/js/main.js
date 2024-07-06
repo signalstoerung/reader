@@ -7,13 +7,28 @@ feedSelector.addEventListener('change', (event) => {
   location.reload;
 });
 
+function redirect(searchTerms){
+  const location = window.location;
+  const params = new URL(location).searchParams;
+  const feed = params.get('feed');
+  if (feed != "") {
+    location.search = `?q=${searchTerms}&feed=${feed}`
+  } else {
+    location.search = `q=${searchTerms}`;
+  }
+  //location.reload;
+}
+
+const searchField = document.getElementById('searchTerms');
+searchField.addEventListener('keydown', (event)=>{
+  if (event.key == "Enter") {
+    redirect(searchField.value);
+  }
+})
+
 const searchButton = document.getElementById('searchButton');
 searchButton.addEventListener('click', (event)=>{
-  const searchTerms = document.getElementById('searchTerms');
-  const searchWords = searchTerms.value;
-  const location = window.location;
-  location.search = `q=${searchWords}`;
-  location.reload;
+  redirect(searchField.value);
 });
 
 function toggleArticleAsides() {
