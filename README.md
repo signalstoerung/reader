@@ -48,6 +48,7 @@ system.d should pick it up from there.
 
 > [!WARNING]
 > When running `start/stop/restart/enable` etc., you need to use `systemctl --user`. Without the `--user` option, systemctl will not find the service file.
+> Additionally, a user script running with systemd only starts at login, not at boot. Run `loginctl enable-linger [username]` to have Reader start at boot.
 
 
 
