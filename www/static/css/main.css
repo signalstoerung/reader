@@ -44,6 +44,11 @@ main {
     min-height: 80vh;
 }
 
+#logo {
+  color: var(--primary-color);
+  text-decoration: none;
+}
+
 #topbar {
   display: flex;
   align-items: center;
