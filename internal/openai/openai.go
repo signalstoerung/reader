@@ -15,6 +15,7 @@ import (
 
 const (
 	chatCompletionEndpoint = "https://api.openai.com/v1/chat/completions"
+	ModelGPT4omini         = "gpt-4o-mini"
 	ModelGPT3Latest        = "gpt-3.5-turbo-0125"
 	ModelGPT3Standard      = "gpt-3.5-turbo"
 	ModelGPT4Latest        = "gpt-4-0125-preview"
@@ -48,12 +49,14 @@ const (
 
 // dollars per 1000 tokens
 var pricing = map[string]float64{
-	"gpt-3.5-turbo":       0.0020,
-	"gpt-3.5-turbo-1106":  0.0020,
-	"gpt-4":               0.06,
-	"gpt-4-1106-preview":  0.03,
-	"gpt-3.5-turbo-0125":  0.0015,
-	"gpt-4-turbo-preview": 0.03,
+	"gpt-3.5-turbo":          0.0020,
+	"gpt-3.5-turbo-1106":     0.0020,
+	"gpt-4":                  0.06,
+	"gpt-4-1106-preview":     0.03,
+	"gpt-3.5-turbo-0125":     0.0015,
+	"gpt-4-turbo-preview":    0.03,
+	"gpt-4o-mini":            0.6 / 1000,
+	"gpt-4o-mini-2024-07-18": 0.6 / 1000,
 }
 
 type OpenAIApiStats struct {
@@ -208,8 +211,8 @@ func ScoreHeadlines(text string, recent []string) (string, error) {
 		log.Printf("Using news context: %v", context)
 	}
 	request := Request{
-		Model:          ModelGPT3Latest,
-		MaxTokens:      1200,
+		Model:          ModelGPT4omini,
+		MaxTokens:      2000,
 		ResponseFormat: ResponseFormat{Type: ResponseFormatJson},
 		Messages: []Message{
 			{
