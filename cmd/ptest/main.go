@@ -132,7 +132,7 @@ func main() {
 
 	err = feeds.Config.OpenDatabase(dbPath)
 	errPanic(err)
-	headlinesToTest, err := feeds.Items("", 100, 0, time.Now().Unix())
+	headlinesToTest, err := feeds.Items("", "", 100, 0, time.Now().Unix())
 	errPanic(err)
 
 	itemsA, err := scoreHeadlines(headlinesToTest, string(prompt1))
