@@ -23,12 +23,17 @@
   --accent-three: #624cabff;
     */
   }
+
+  html {
+    box-sizing: border-box;
+  }
   
   body {
     padding-left: 0.5em;
     padding-right: 0.5em;
     color: var(--primary-color);
     background-color: var(--background-color);
+    overflow-x: hidden;
   }
   
   @media screen and (min-width: 768px) {
@@ -53,17 +58,8 @@ main {
   display: flex;
   align-items: center;
   margin-bottom: 0.5em;
+  column-gap: 1em;
 }
-
-#topbar > div {
-  padding-right: 1em;
-  
-}
-
-  #feedSelector {
-    display: flex;
-    align-items: center;
-  }
 
   #feed {
     font-size: 10pt;
@@ -71,15 +67,12 @@ main {
     background-color: ghostwhite;
   }
 
-  #search {
-    display: flex;
-    align-items: center;
-    gap:0.25em;
-  }
 
   #searchTerms {
     font-size: 10pt;
     margin:0;
+    flex-shrink: 1;
+    flex-grow:1;
   }
 
   #searchButton {
