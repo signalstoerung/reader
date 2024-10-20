@@ -1,8 +1,8 @@
 <main>
+  {{ if .Message}}
+  <div class="warning">{{.Message}}</div>
+  {{ end }}
   <section id="topbar">
-    {{ if .Message}}
-    <div class="warning">{{.Message}}</div>
-    {{ end }}
     <div id="feedSelector">
       <select id="feed">
         <option selected value="">Filter by feed</option>
@@ -54,5 +54,44 @@
       <div><a href="/logout/">Logout</a></div>
     </nav>
   </main>
+  <script>
+    class NewsTicker {
+        constructor() {
+            this.container = document.getElementById("container");
+            this.initWebSocket();
+        }
+
+        initWebSocket() {
+            const ws = new WebSocket('/newsticker/');
+            
+            ws.onmessage = (event) => {
+                const headline = JSON.parse(event.data);
+                console.log(headline);
+                this.addHeadline(headline);
+            };
+
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+            };
+        }
+
+        addHeadline(headline) {
+          const newArticle = document.createElement("article")
+          const published = new Date(headline.PublishedParsed);
+          newArticle.innerHTML = `
+          <div class="headline alert">
+            <a href="${headline.Link}" referrerpolicy="no-referrer" target="_blank">${published.toLocaleTimeString("en-GB")} ${headline.FeedAbbr}-${headline.Title}</a>
+          </div>`;
+          if (container.firstChild) {
+            container.insertBefore(newArticle, container.firstChild);
+          } else {
+            container.appendChild(newArticle);
+          }
+        }
+      }
+
+    // Initialize ticker
+    const ticker = new NewsTicker();
+</script>
   <script src="/static/js/main.js"></script>
   <script src="/static/js/redact.js"></script>

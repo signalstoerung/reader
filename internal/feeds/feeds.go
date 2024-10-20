@@ -28,7 +28,8 @@ var (
 // TYPES
 
 type Configuration struct {
-	DB *gorm.DB
+	DB            *gorm.DB
+	TickerChannel chan Item
 }
 
 func (c *Configuration) OpenDatabase(path string) error {
@@ -40,6 +41,10 @@ func (c *Configuration) OpenDatabase(path string) error {
 	db.AutoMigrate(&Item{})
 	c.DB = db
 	return nil
+}
+
+func (c *Configuration) SetTickerChannel(ch chan Item) {
+	c.TickerChannel = ch
 }
 
 // The Feed struct stores information about an RSS feed.
@@ -139,6 +144,18 @@ func ingestFromUrlWriteToDB(db *gorm.DB, u string, abbr string) {
 		if result.Error != nil {
 			log.Printf("Error updating feed %v: %v", feed.Title, result.Error)
 			continue
+		}
+		// detect if the item was newly created
+		if result.RowsAffected > 0 {
+			// item is new, stream to channel if it has been set
+			if Config.TickerChannel != nil {
+				// check if channel is blocked
+				select {
+				case Config.TickerChannel <- dbItem:
+				default:
+					log.Println("Ticker channel blocked, skipping item.")
+				}
+			}
 		}
 	}
 }

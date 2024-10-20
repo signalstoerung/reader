@@ -12,10 +12,15 @@ import (
 	"strings"
 	"time"
 
+	"github.com/coder/websocket"
 	"github.com/signalstoerung/reader/internal/feeds"
+	"github.com/signalstoerung/reader/internal/newsticker"
 	"github.com/signalstoerung/reader/internal/users"
 	"golang.org/x/exp/slices"
+	"golang.org/x/net/context"
 )
+
+const websocketMagicString = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
 
 func loginHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodGet {
@@ -117,6 +122,75 @@ func headlinesHandler(w http.ResponseWriter, r *http.Request) {
 	templ.Execute(w, pageData)
 	log.Printf("/items/%v/%s/%d/%v (user: %v)", feed, cleanSearch, startTime, page, session.User)
 
+}
+
+// newstickerHandler is the handler for the newsticker. It receives incoming connections, upgrades them to a websocket connection, then waits for new items to be added to the ticker channel and sends them to the client.
+func newstickerHandler(w http.ResponseWriter, r *http.Request) {
+
+	// DEBUG ONLY - DISBLING USER CHECK
+	// session := users.Session{User: "testuser"}
+
+	// get session
+	session, ok := r.Context().Value(users.SessionContextKey).(users.Session)
+	if !ok {
+		log.Println("No session context found")
+		return
+	}
+
+	// check origin header
+	if origin := r.Header.Get("Origin"); origin != "reader.unxpctd.xyz" {
+		log.Printf("Unexpected origin header: %v. TODO: reject in production.", origin)
+	}
+
+	// check if user already has a connection
+	if newsticker.Config.ConsumerExists(session.User) {
+		log.Printf("User %v already has a connection", session.User)
+		http.Error(w, "Already connected", http.StatusConflict)
+		return
+	}
+
+	conn, err := websocket.Accept(w, r, nil)
+	if err != nil {
+		log.Printf("Error accepting websocket connection: %v", err)
+		return
+	}
+	defer conn.Close(websocket.StatusInternalError, "the sky is falling")
+
+	// CloseRead provides a context that is cancelled when the connection is closed, or when a message is received (which we're not expecting here)
+	ctx := conn.CloseRead(context.Background())
+
+	// make ticker channel
+	tickerChannel := make(chan feeds.Item, 100)
+
+	// register consumer
+	newsticker.Config.RegisterConsumer(session.User, tickerChannel)
+	defer newsticker.Config.UnregisterConsumer(session.User)
+
+	// send items to client
+	log.Printf("Awaiting items for %v", session.User)
+	for {
+		select {
+		case <-ctx.Done():
+			log.Printf("Connection closed for %v", session.User)
+			newsticker.Config.UnregisterConsumer(session.User)
+			return
+		case item := <-tickerChannel:
+			// send item to client
+			log.Printf("Sending item to %v: %v", session.User, item.Title)
+			// encode item for websocket
+			data, err := json.Marshal(item)
+			if err != nil {
+				log.Printf("Error encoding item: %v", err)
+				continue
+			}
+
+			err = conn.Write(ctx, websocket.MessageText, data)
+			if err != nil {
+				log.Printf("Error writing to websocket: %v", err)
+				return
+			}
+		}
+	}
 }
 
 func archiveOrgHandler(w http.ResponseWriter, r *http.Request) {

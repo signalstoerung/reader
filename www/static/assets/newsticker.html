@@ -1,0 +1,24 @@
+<!DOCTYPE html lang="en">
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>News ticker</title> 
+    <link rel="stylesheet" href="/static/css/main.css">
+    </head>
+<body>
+    <div id="ticker"></div>
+    <script>
+        const ticker = document.getElementById('ticker');
+        const ws = new WebSocket('ws://localhost:8000/newsticker/');
+        console.log(`Waiting for data on websocket ${ws.url}, ${ws.readyState}`);
+        ws.onmessage = function(event) {
+            console.log(`Received data: ${event.data}`);
+            const json = JSON.parse(event.data)
+            const div = document.createElement('div');
+            const date = new Date(json.PublishedParsed);
+            div.innerHTML = `${date.toLocaleTimeString()}--<a href="${json.Link}">${json.Title}</a>`;
+            //ticker.appendChild(div);
+            ticker.insertBefore(div, ticker.firstChild);
+        };
+    </script>
+</html>

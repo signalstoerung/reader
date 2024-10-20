@@ -5,16 +5,20 @@ and displayed in the style of a ticker with only headlines.
 package main
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 	_ "time/tzdata"
 
 	"github.com/signalstoerung/reader/internal/cache"
 	"github.com/signalstoerung/reader/internal/feeds"
+	"github.com/signalstoerung/reader/internal/newsticker"
 	"github.com/signalstoerung/reader/internal/openai"
 	"github.com/signalstoerung/reader/internal/users"
 	"gopkg.in/yaml.v3"
@@ -113,6 +117,8 @@ func main() {
 	var dbFilePath string
 	var aiActive bool
 	var promptFile string
+	var tickerChannel = make(chan feeds.Item, 100) // buffered channel of ticker items
+	var cancelNewsticker = make(chan struct{})
 
 	// FLAGS
 	flag.BoolVar(&debug, "debug", false, "Activate debug options and logging")
@@ -162,6 +168,12 @@ func main() {
 		}
 	}
 
+	// set ticker channel on feeds.Config
+	feeds.Config.SetTickerChannel(tickerChannel)
+	// launch ticker consumer
+	newsticker.Config.SetTickerChannel(tickerChannel)
+	go newsticker.ConsumeTicker(cancelNewsticker)
+
 	// register handlers
 	http.HandleFunc("/", users.SessionMiddleware("/login/", headlinesHandler))
 	http.HandleFunc("/login/", users.LoginMiddleware("/login", loginHandler))
@@ -172,6 +184,9 @@ func main() {
 	http.HandleFunc("/saved/", users.SessionMiddleware("/login", savedItemsHandler))
 	http.HandleFunc("/archiveorg/", users.SessionMiddleware("/login/", archiveOrgHandler))
 	http.HandleFunc("/proxy/", users.SessionMiddleware("/login/", proxyHandler))
+	http.HandleFunc("/newsticker/", users.SessionMiddleware("/login/", newstickerHandler))
+	// removing session checks for debugging
+	// http.HandleFunc("/newsticker/", newstickerHandler)
 	staticFileHandler := http.FileServer(http.Dir("./www"))
 	http.Handle("/static/", staticFileHandler)
 
@@ -186,9 +201,12 @@ func main() {
 		http.ServeFile(w, r, "./www/static/icons/apple-touch-icon.png")
 	})
 
+	// this is only used when debug is on, but we can't have the channel go out of scope to be able to close it later, so we define it here
+	cancelSimulator := make(chan struct{})
 	if debug {
 		// add debug options here
 		log.Printf("Debug mode on.")
+		go newsticker.SimulateTicker(cancelSimulator)
 	}
 
 	// start a ticker for periodic refresh using the const updateFrequency
@@ -198,17 +216,36 @@ func main() {
 	log.Printf("Starting ticker for periodic update (%v minutes).", globalConfig.UpdateFrequency)
 	go periodicUpdates(tickerUpdating, quit)
 
-	if debug {
-		feeds.UpdateFeeds()
-		triggerScoring()
-	}
+	// Channel to listen for interrupt signals
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 
-	// serve web app
-	log.Print("Starting to serve.")
-	err := http.ListenAndServe(":8000", nil)
-	log.Println(err)
+	// Serve web app in a goroutine
+	server := &http.Server{Addr: ":8000"}
+	go func() {
+		log.Print("Starting to serve.")
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("Could not listen on :8000: %v\n", err)
+		}
+	}()
+
+	// Wait for interrupt signal
+	<-sigChan
+	log.Println("Shutting down gracefully...")
+
+	// Stop the ticker
 	tickerUpdating.Stop()
 	cache.CleanTicker.Stop()
+	close(cancelNewsticker)
+	close(cancelSimulator)
+
+	// Shutdown the server
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := server.Shutdown(ctx); err != nil {
+		log.Fatalf("Server forced to shutdown: %v", err)
+	}
+
 	log.Println("Stopped tickers.")
 	log.Println("Exiting.")
 }
