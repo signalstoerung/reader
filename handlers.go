@@ -138,7 +138,7 @@ func newstickerHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// check origin header
-	if origin := r.Header.Get("Origin"); origin != "reader.unxpctd.xyz" {
+	if origin := r.Header.Get("Origin"); origin != "https://reader.unxpctd.xyz" {
 		log.Printf("Unexpected origin header: %v. TODO: reject in production.", origin)
 	}
 
@@ -149,7 +149,10 @@ func newstickerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	conn, err := websocket.Accept(w, r, nil)
+	opts := websocket.AcceptOptions{
+		OriginPatterns: []string{"reader.unxpctd.xyz"},
+	}
+	conn, err := websocket.Accept(w, r, &opts)
 	if err != nil {
 		log.Printf("Error accepting websocket connection: %v", err)
 		return

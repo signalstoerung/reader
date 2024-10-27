@@ -53,8 +53,22 @@
       <div><a href="/saved/">Saved</a></div>
       <div><a href="/logout/">Logout</a></div>
     </nav>
+    <div id="socketinfo"></div>
   </main>
+<style>
+#socketinfo {
+	position: fixed;
+	bottom: 1em;
+	right: 1em;
+	font-size: 70%;
+}
+</style>
   <script>
+	const socketinfo = document.getElementById("socketinfo");
+	function log(s) {
+		socketinfo.innerHTML = s;
+	}
+
     class NewsTicker {
         constructor() {
             this.container = document.getElementById("container");
@@ -62,8 +76,11 @@
         }
 
         initWebSocket() {
-            const ws = new WebSocket('/newsticker/');
-            
+            const ws = new WebSocket('wss://reader.unxpctd.xyz/newsticker/');
+            log("Websocket initializing...");
+	    ws.onopen = (e) => {
+		    log("Listening...");
+	    };
             ws.onmessage = (event) => {
                 const headline = JSON.parse(event.data);
                 console.log(headline);
@@ -71,8 +88,13 @@
             };
 
             ws.onerror = (error) => {
-                console.error('WebSocket error:', error);
+		    log(`WebSocket error: ${error}`);
             };
+		ws.onclose = (e) => {
+			console.log(e);
+			log(`Attempting to reconnect... ${e.reason}`);
+			setTimeout( this.initWebSocket, 5000);
+		};
         }
 
         addHeadline(headline) {
@@ -89,6 +111,7 @@
           }
         }
       }
+
 
     // Initialize ticker
     const ticker = new NewsTicker();
