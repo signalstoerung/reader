@@ -40,7 +40,11 @@ func main() {
 		feeds.CreateFeed(feeds.Feed{Name: abbr, Abbr: abbr, Url: feedUrl.String()})
 	default:
 		log.Println("poll & update db")
-		feeds.UpdateFeeds()
+		err = feeds.UpdateFeeds()
+		if err != nil {
+			log.Printf("Error updating feeds: %v", err)
+			os.Exit(2)
+		}
 	}
 
 }
