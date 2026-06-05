@@ -1,20 +1,21 @@
 <main>
-	<div id="container">
-		<p><strong>{{.}}</strong></p>
-		<p>Please log in or <a href="/register/">register</a>.</p>
-		<form action="/login/" method="post">
+	<section id="container" class="auth-panel">
+		<h2>Private reader</h2>
+		{{if .}}<p class="auth-message"><strong>{{.}}</strong></p>{{end}}
+		<p class="auth-copy">Log in to Tickr.</p>
+		<form action="/login/" method="post" class="auth-form">
 		  <div>
+			<label for="userid">User ID</label>
 			<input type="text" id="userid" name="userid" placeholder="user id">
 		  </div>
 		  <div>
+			<label for="password">Password</label>
 			<input type="password" id="password" name="password" placeholder="mysecretpassword">
 		  </div>
 		  <div>
-			<input type="submit" class="button" value="Log in">
+			<input type="submit" class="btn btn-primary" value="Log in">
 		  </div>
 		</form>
-	</div>
-    <nav>
-		<div><a href="/">Home</a></div>
-	  </nav>
+		<p class="auth-secondary"><a href="/register/">Registration</a></p>
+	</section>
   </main>

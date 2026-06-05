@@ -1,48 +1,45 @@
 {{ $url := .PageUrl }}
 <main>
-    <div id="container">
-    <div class="feedListHeadline">Feed list</div>
+    <section id="container" class="admin-list">
+    <h2 class="feedListHeadline">Feed list</h2>
     {{ range .Feeds }}
-    <section class="feedList">
-        <div class="feedListNarrow">
+    <section class="feedList admin-row">
+        <div class="feedListNarrow" data-label="Name">
             {{.Name}}
         </div>
-        <div class="feedListNarrow">
+        <div class="feedListNarrow" data-label="Ticker">
             {{.Abbr}}
         </div>
-        <div class="feedListWide">
+        <div class="feedListWide" data-label="URL">
             {{.Url}}
         </div>
-        <div class="feedListNarrow">
+        <div class="feedListNarrow row-actions">
             <form method="post" action="{{$url}}">
                 <input type="hidden" name="ID" value="{{.ID}}"><input type="hidden" name="action" value="delete">
-                <input type="submit" value="Delete" class="button">
+                <input type="submit" value="Delete" class="btn btn-outline">
             </form>        
         </div>
     </section>
     {{ end}}
-    <form method="post" action="{{$url}}">
-        <section class="feedList">
+    <form method="post" action="{{$url}}" class="admin-form">
+        <section class="feedList admin-row add-row">
             <div class="feedListNarrow">
-                <input type="text" name="name" size="12" maxlength="30" placeholder="NYT Homepage">
+                <label for="feed-name">Name</label>
+                <input type="text" id="feed-name" name="name" size="12" maxlength="30" placeholder="NYT Homepage">
             </div>
             <div class="feedListNarrow">
-                <input type="text" name="abbr" size="5" maxlength="4" placeholder="NYT">
+                <label for="feed-abbr">Ticker</label>
+                <input type="text" id="feed-abbr" name="abbr" size="5" maxlength="4" placeholder="NYT">
             </div>
             <div class="feedListWide">
-                <input type="url" name="url" size="30" maxlength="255" placeholder="https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml">
+                <label for="feed-url">URL</label>
+                <input type="url" id="feed-url" name="url" size="30" maxlength="255" placeholder="https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml">
             </div>
-            <div class="feedListNarrow">
+            <div class="feedListNarrow row-actions">
                 <input type="hidden" name="action" value="add">
-                <input type="submit" value="Add" class="button">
+                <input type="submit" value="Add" class="btn btn-primary">
             </div>        
         </section>
     </form>
-    </div>
-    <nav>
-		<div><a href="/">Home</a></div>
-		<div><a href="/feeds/">Feeds</a></div>
-        <div><a href="/keywords/">Filters</a></div>
-		<div><a href="/logout/">Logout</a></div>
-    </nav>  
+    </section>
 </main>

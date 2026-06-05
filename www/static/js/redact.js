@@ -18,7 +18,8 @@ function generateWobblyLine(length, height, wobbleAmount) {
     const pathElem = document.createElementNS('http://www.w3.org/2000/svg', 'path');
     pathElem.setAttribute('d', path);
     pathElem.setAttribute('fill', 'none');
-    pathElem.setAttribute('stroke', '#4d4d4d');
+    pathElem.setAttribute('stroke', '#050505');
+    pathElem.setAttribute('stroke-opacity', '0.78');
     pathElem.setAttribute('stroke-width', lineWidth);
     
     svgElement.appendChild(pathElem);
@@ -29,13 +30,12 @@ function generateWobblyLine(length, height, wobbleAmount) {
   const wobbleAmount = 1; // Adjust for more/less wobble
   const headlines = Array.from(document.getElementsByClassName("redacted"));
   for (var headline of headlines) {
-    console.log("Headline: " + headline);
-    const headlineLink = Array.from(headline.getElementsByTagName("a"));
-    if (headlineLink.length < 1) {
+    const headlineTarget = headline.querySelector(".headline-toggle, a");
+    if (!headlineTarget) {
         continue;
     }
-    const headlineWidth = headlineLink[0].getBoundingClientRect().width;
-    const headlineHeight = headlineLink[0].getBoundingClientRect().height;
+    const headlineWidth = headlineTarget.getBoundingClientRect().width;
+    const headlineHeight = headlineTarget.getBoundingClientRect().height;
     const svg = generateWobblyLine(headlineWidth, headlineHeight, wobbleAmount);
     svg.setAttribute('width', headlineWidth);
     headline.appendChild(svg);

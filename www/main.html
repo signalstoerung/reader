@@ -2,57 +2,55 @@
   {{ if .Message}}
   <div class="warning">{{.Message}}</div>
   {{ end }}
-  <section id="topbar">
+  <section id="topbar" class="toolbar" aria-label="Feed controls">
     <div id="feedSelector">
+      <label for="feed">Feed</label>
       <select id="feed">
         <option selected value="">Filter by feed</option>
-        <hr>
         {{ range .Feeds }}
         <option>{{.Abbr}}</option>
         {{end }}
-        <hr>
-        <option value="">Clear filter</option>"
+        <option value="">Clear filter</option>
       </select>
     </div>
-    
-      <input type="text" id="searchTerms" size="10" placeholder="search terms" value="{{.SearchTerms}}"/>
-      <button id="searchButton" class="button">Search</button>
-    
+    <div class="search-control">
+      <label for="searchTerms">Search</label>
+      <input type="search" id="searchTerms" placeholder="search terms" value="{{.SearchTerms}}"/>
+    </div>
+    <button id="searchButton" class="btn btn-primary">Search</button>
   </section>
-    <section id="container">
+    <section id="container" class="ticker-list" aria-label="Headlines">
         {{range .Headlines }}
-            <article>
+            <article class="ticker-item">
                 <div class="headline {{.AlertClass}}">
-                    <a href="#">{{.Timestamp}} {{.FeedAbbr}}-{{.Title}}</a>
+                    <button type="button" class="headline-toggle">
+                      <span class="headline-meta"><span class="headline-time">{{.Timestamp}}</span> <span class="headline-feed">{{.FeedAbbr}}</span></span>
+                      <span class="headline-title">{{.Title}}</span>
+                    </button>
                 </div>
-                <aside>
-                  <div class="shareAction" data-headline="{{.Title}}" data-link="{{.Link}}" data-preview="{{.Preview}}"><img src="/static/icons/share.svg"></div>
-                  <div class="saveAction" data-id="{{.ItemId}}">&#9734</div>
+                <aside class="headline-preview">
                   {{if ne .BreakingNewsReason "N/A"}}<p class="breakingNewsReason">{{.BreakingNewsReason}}</p>{{end}}
                     <p>
                       {{.Preview}}<br>
                       <a href="{{.Link}}" referrerpolicy="no-referrer" target="_blank">Go to article</a> 
                       <!-- | <a href="/proxy/{{.Link}}" target="_blank">archive.is link</a> | <a href="/archiveorg/?url={{.Link}}" target="_blank">archive.org link</a> -->
                     </p>
+                    <div class="headline-actions">
+                      <button type="button" class="saveAction btn btn-outline" data-id="{{.ItemId}}">Save</button>
+                      <button type="button" class="shareAction btn btn-outline" data-headline="{{.Title}}" data-link="{{.Link}}" data-preview="{{.Preview}}">Share</button>
+                    </div>
                     <!-- <a href="http://webcache.googleusercontent.com/search?q=cache:{{.Link}}" target="_blank">Google Cache</a> -->
                 </aside>
             </article>
         {{ end }}
         <section class="pagenav">
-            {{if eq .Page 1}}<a class="buttonDisabled">Previous</a>
-            {{else}}<a href="{{.PrevPageLink}}" class="button">Previous</a>{{end}}
+            {{if eq .Page 1}}<span class="btn btn-disabled">Previous</span>
+            {{else}}<a href="{{.PrevPageLink}}" class="btn btn-primary">Previous</a>{{end}}
             <span class="pageNumber">Page {{.Page}}</span>
-            {{if eq .NextPageLink ""}}<a class="buttonDisabled">Next</a>
-            {{else}}<a href="{{.NextPageLink}}" class="button">Next</a>{{end}}
+            {{if eq .NextPageLink ""}}<span class="btn btn-disabled">Next</span>
+            {{else}}<a href="{{.NextPageLink}}" class="btn btn-primary">Next</a>{{end}}
         </section>
     </section>
-    <nav>
-      <div><a href="/">Home</a></div>
-      <div><a href="/feeds/">Feeds</a></div>
-      <div><a href="/keywords/">Filters</a></div>
-      <div><a href="/saved/">Saved</a></div>
-      <div><a href="/logout/">Logout</a></div>
-    </nav>
     <div id="socketinfo"></div>
   </main>
 <style>
@@ -93,16 +91,20 @@
 		ws.onclose = (e) => {
 			console.log(e);
 			log(`Attempting to reconnect... ${e.reason}`);
-			setTimeout( this.initWebSocket, 5000);
+			setTimeout(() => this.initWebSocket(), 5000);
 		};
         }
 
         addHeadline(headline) {
           const newArticle = document.createElement("article")
+          newArticle.className = "ticker-item";
           const published = new Date(headline.PublishedParsed);
           newArticle.innerHTML = `
           <div class="headline alert">
-            <a href="${headline.Link}" referrerpolicy="no-referrer" target="_blank">${published.toLocaleTimeString("en-GB")} ${headline.FeedAbbr}-${headline.Title}</a>
+            <a class="headline-live" href="${headline.Link}" referrerpolicy="no-referrer" target="_blank">
+              <span class="headline-meta"><span class="headline-time">${published.toLocaleTimeString("en-GB")}</span> <span class="headline-feed">${headline.FeedAbbr}</span></span>
+              <span class="headline-title">${headline.Title}</span>
+            </a>
           </div>`;
           if (container.firstChild) {
             container.insertBefore(newArticle, container.firstChild);
@@ -116,5 +118,5 @@
     // Initialize ticker
     const ticker = new NewsTicker();
 </script>
-  <script src="/static/js/main.js"></script>
-  <script src="/static/js/redact.js"></script>
+  <script src="/static/js/main.js?v=20260605-5"></script>
+  <script src="/static/js/redact.js?v=20260605-6"></script>

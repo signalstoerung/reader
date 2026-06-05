@@ -1,23 +1,24 @@
 <main>
-	<div id="container">
+	<section id="container" class="auth-panel">
+		<h2>Registration</h2>
 		{{ if .signupsOpen }}
-		<p>Sign up by creating a user name and password:</p>
-		<form action="/register/" method="post">
+		<p class="auth-copy">Create the first private account.</p>
+		<form action="/register/" method="post" class="auth-form">
 		  <div>
-			<input type="text" class="form-control" id="userid" name="userid" placeholder="user id">
+			<label for="userid">User ID</label>
+			<input type="text" id="userid" name="userid" placeholder="user id">
 		  </div>
 		  <div>
-			<input type="password" class="form-control" id="password" name="password" placeholder="mysecretpassword">
+			<label for="password">Password</label>
+			<input type="password" id="password" name="password" placeholder="mysecretpassword">
 		  </div>
 		  <div>
-			<input type="submit" class="btn btn-primary" value="Log in">
+			<input type="submit" class="btn btn-primary" value="Create account">
 		  </div>
 		</form>
 		{{ else }}
-		<p><strong>Sorry, signups are closed.</strong></p>
+		<p class="auth-message"><strong>Sorry, signups are closed.</strong></p>
 		{{ end }}
-	</div>
-    <nav>
-		<div><a href="/">Home</a></div>
-	  </nav>
+		<p class="auth-secondary"><a href="/login/">Back to login</a></p>
+	</section>
   </main>

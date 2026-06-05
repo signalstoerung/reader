@@ -38,6 +38,7 @@ const (
 	HTMLRegisterFormPath   = "www/register-form.html"
 	HTMLLoginFormPath      = "www/login-form.html"
 	HTMLKeywordFormPath    = "www/keywordform.html"
+	HTMLAppNavPath         = "www/app-nav.html"
 )
 
 func ConvertItems(in []feeds.Item, keywordList users.KeywordList) []HeadlineItem {

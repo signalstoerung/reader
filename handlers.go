@@ -120,6 +120,7 @@ func headlinesHandler(w http.ResponseWriter, r *http.Request) {
 	defer emitHTMLFromFile(w, HTMLFooterPath)
 	templ := template.Must(template.ParseFiles("www/main.html"))
 	templ.Execute(w, pageData)
+	emitHTMLFromFile(w, HTMLAppNavPath)
 	log.Printf("/items/%v/%s/%d/%v (user: %v)", feed, cleanSearch, startTime, page, session.User)
 
 }
@@ -297,6 +298,7 @@ func savedItemsHandler(w http.ResponseWriter, r *http.Request) {
 		defer emitHTMLFromFile(w, HTMLFooterPath)
 		templ := template.Must(template.ParseFiles("www/saved.html"))
 		templ.Execute(w, items)
+		emitHTMLFromFile(w, HTMLAppNavPath)
 		return
 	}
 	http.Error(w, "Bad request", http.StatusBadRequest)
@@ -323,6 +325,7 @@ func keywordEditHandler(w http.ResponseWriter, r *http.Request) {
 		defer emitHTMLFromFile(w, HTMLFooterPath)
 		templ := template.Must(template.ParseFiles(HTMLKeywordFormPath))
 		templ.Execute(w, keywordList)
+		emitHTMLFromFile(w, HTMLAppNavPath)
 		return
 	}
 	if r.Method == http.MethodPost {
@@ -392,6 +395,7 @@ func feedEditHandler(w http.ResponseWriter, r *http.Request) {
 		pageData["PageUrl"] = r.URL.Path
 		templ := template.Must(template.ParseFiles(HTMLFeedFormPath))
 		templ.Execute(w, pageData)
+		emitHTMLFromFile(w, HTMLAppNavPath)
 		return
 	}
 	if r.Method == http.MethodPost {
@@ -434,6 +438,7 @@ func feedEditHandler(w http.ResponseWriter, r *http.Request) {
 		defer emitHTMLFromFile(w, HTMLFooterPath)
 		templ := template.Must(template.ParseFiles(HTMLFeedFormResultPath))
 		templ.Execute(w, resultMessage)
+		emitHTMLFromFile(w, HTMLAppNavPath)
 		return
 	}
 	http.Error(w, "Method not allowed", http.StatusBadRequest)

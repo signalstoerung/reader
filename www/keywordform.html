@@ -1,42 +1,36 @@
 <main>
-    <div id="container">
-        <div class="keywordHeadline">Keyword list</div>
+    <section id="container" class="admin-list">
+        <h2 class="keywordHeadline">Keyword list</h2>
         {{ range . }}
-        <section class="keywordList">
-            <div>{{ .Text }}</div>
-            <div><span class="keywordTag">{{ if eq .Mode "KeywordSuppress" }}Suppress{{else}}Highlight{{end}}</span></div>
-            <div>{{ .Annotation }}</div>
-            <div>
+        <section class="keywordList admin-row">
+            <div data-label="Keyword">{{ .Text }}</div>
+            <div data-label="Mode"><span class="keywordTag">{{ if eq .Mode "KeywordSuppress" }}Suppress{{else}}Highlight{{end}}</span></div>
+            <div data-label="Comment">{{ .Annotation }}</div>
+            <div class="row-actions">
                 <form method="POST" action=".">
                     <input type="hidden" name="action" value="delete">
                     <input type="hidden" name="id" value="{{.ID}}">
-                    <input type="submit" value="Delete" class="button">
+                    <input type="submit" value="Delete" class="btn btn-outline">
                 </form>
             </div>
         </section>
         {{ end }}
-        <form method="POST" action=".">
-            <section class="keywordList">
-                <div><input type="text" name="keyword" placeholder="keyword" size="12"></div>
+        <form method="POST" action="." class="admin-form">
+            <section class="keywordList admin-row add-row">
+                <div><label for="keyword">Keyword</label><input type="text" id="keyword" name="keyword" placeholder="keyword" size="12"></div>
                 <div>
-                    <select name="mode">
+                    <label for="mode">Mode</label>
+                    <select id="mode" name="mode">
                         <option selected value="suppress">Suppress</option>
                         <option value="highlight">Highlight</option>
                     </select>
                 </div>
-                <div><input type="text" name="annotation" placeholder="comment" size="12"></div>
-                <div>
+                <div><label for="annotation">Comment</label><input type="text" id="annotation" name="annotation" placeholder="comment" size="12"></div>
+                <div class="row-actions">
                     <input type="hidden" name="action" value="add">
-                    <input type="submit" value="Submit" class="button">
+                    <input type="submit" value="Submit" class="btn btn-primary">
                 </div>
             </section>
         </form>
-    </div>
-    <nav>
-		<div><a href="/">Home</a></div>
-		<div><a href="/feeds/">Feeds</a></div>
-        <div><a href="/keywords/">Filters</a></div>
-        <div><a href="/saved/">Saved</a></div>
-		<div><a href="/logout/">Logout</a></div>
-    </nav>  
+    </section>
 </main>
