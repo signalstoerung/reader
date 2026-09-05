@@ -17,3 +17,6 @@ resultsPerPage: 25
 
 # translation api key
 deeplApiKey: ...
+
+# openai api key - required unless running with -ai=false
+openAiToken: ...
