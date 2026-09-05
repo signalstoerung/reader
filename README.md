@@ -16,7 +16,7 @@ On top of the plain ticker it adds:
 
 ## Requirements
 
-- Go 1.23 or later (the module pins toolchain 1.24.1).
+- Go 1.25 or later (the module pins toolchain 1.27.1). Keep this current — see [Maintenance](#maintenance).
 - A C toolchain, because the SQLite driver (`mattn/go-sqlite3`) is cgo-based.
 - An OpenAI API key, if you want headline scoring. Without one, run with `-ai=false`.
 
@@ -219,6 +219,43 @@ go build -o archive ./cmd/archive
 ```
 
 It reuses `internal/feeds`, so the schema matches Reader's, but it does no scoring and serves no UI. Run it from cron.
+
+## Maintenance
+
+This is a feature-complete app that mostly runs untouched. The only recurring
+chore is security patching, and it splits into two very different halves:
+
+**The Go toolchain (the important half).** Standard-library security fixes ship
+in toolchain point releases, *not* as `go.mod` dependencies. Dependabot does not
+track them and will never open a PR for them. Go supports only the two most
+recent major lines, so a pinned toolchain silently stops receiving fixes after
+about a year. Bumping it is near-zero risk thanks to Go's compatibility promise.
+
+**Third-party dependencies (the noisy half).** GitHub will flag every advisory in
+your dependency tree regardless of whether you call the affected code. Most of
+these are unreachable and not worth a risky upgrade. `govulncheck` does
+reachability analysis and tells you which ones actually matter.
+
+Run `./audit-deps.sh` every 3-6 months. It changes nothing, only reports:
+
+```
+./audit-deps.sh
+```
+
+It checks whether the pinned toolchain is still supported, then scans the built
+binary (which covers stdlib, dependencies, and reachability in one pass). Exit
+code 0 means nothing to do. Act on findings under `=== Symbol Results ===`;
+anything reported as "not called" can wait for a rainy day.
+
+After changing anything:
+
+```
+go build ./... && go vet ./...
+go build -o reader . && systemctl --user restart reader
+```
+
+Note that the scan reads `./reader` on disk, so rebuild before scanning if you
+want to see the fixed state rather than the state you are still running.
 
 ## Reading the news
 

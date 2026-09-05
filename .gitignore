@@ -4,5 +4,6 @@ config.yaml
 githubtoken
 browserconfig.xml
 reader
+reader.sh
 cmd/ptest/ptest
 db/gpt-prompt.txt
